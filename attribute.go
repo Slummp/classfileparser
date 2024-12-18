@@ -1,31 +1,31 @@
 package classfileparser
 
 type Attributes struct {
-	Code                                 []Code
-	ConstantValue                        []ConstantValue
-	Deprecated                           []Deprecated
-	Exceptions                           []Exceptions
-	InnerClasses                         []InnerClasses
-	LineNumberTable                      []LineNumberTable
-	LocalVariableTable                   []LocalVariableTable
-	LocalVariableTypeTable               []LocalVariableTypeTable
-	MethodParameters                     []MethodParameters
-	RuntimeVisibleAnnotations            []RuntimeVisibleAnnotations
-	RuntimeInvisibleAnnotations          []RuntimeInvisibleAnnotations
-	RuntimeVisibleParameterAnnotations   []RuntimeVisibleParameterAnnotations
-	RuntimeInvisibleParameterAnnotations []RuntimeInvisibleParameterAnnotations
-	SourceFile                           []SourceFile
-	SourceDebugExtension                 []SourceDebugExtension
-	Signature                            []Signature
-	StackMapTable                        []StackMapTable
-	Synthetic                            []Synthetic
-	EnclosingMethod                      []EnclosingMethod
-	BootstrapMethods                     []BootstrapMethods
-	Module                               []Module
-	ModulePackages                       []ModulePackages
-	NestHost                             []NestHost
-	NestMembers                          []NestMembers
-	PermittedSubclasses                  []PermittedSubclasses
+	Code                                 []Code                                 `json:",omitempty"`
+	ConstantValue                        []ConstantValue                        `json:",omitempty"`
+	Deprecated                           []Deprecated                           `json:",omitempty"`
+	Exceptions                           []Exceptions                           `json:",omitempty"`
+	InnerClasses                         []InnerClasses                         `json:",omitempty"`
+	LineNumberTable                      []LineNumberTable                      `json:",omitempty"`
+	LocalVariableTable                   []LocalVariableTable                   `json:",omitempty"`
+	LocalVariableTypeTable               []LocalVariableTypeTable               `json:",omitempty"`
+	MethodParameters                     []MethodParameters                     `json:",omitempty"`
+	RuntimeVisibleAnnotations            []RuntimeVisibleAnnotations            `json:",omitempty"`
+	RuntimeInvisibleAnnotations          []RuntimeInvisibleAnnotations          `json:",omitempty"`
+	RuntimeVisibleParameterAnnotations   []RuntimeVisibleParameterAnnotations   `json:",omitempty"`
+	RuntimeInvisibleParameterAnnotations []RuntimeInvisibleParameterAnnotations `json:",omitempty"`
+	SourceFile                           []SourceFile                           `json:",omitempty"`
+	SourceDebugExtension                 []SourceDebugExtension                 `json:",omitempty"`
+	Signature                            []Signature                            `json:",omitempty"`
+	StackMapTable                        []StackMapTable                        `json:",omitempty"`
+	Synthetic                            []Synthetic                            `json:",omitempty"`
+	EnclosingMethod                      []EnclosingMethod                      `json:",omitempty"`
+	BootstrapMethods                     []BootstrapMethods                     `json:",omitempty"`
+	Module                               []Module                               `json:",omitempty"`
+	ModulePackages                       []ModulePackages                       `json:",omitempty"`
+	NestHost                             []NestHost                             `json:",omitempty"`
+	NestMembers                          []NestMembers                          `json:",omitempty"`
+	PermittedSubclasses                  []PermittedSubclasses                  `json:",omitempty"`
 }
 
 // Code : Contient le bytecode et les informations relatives à la méthode.
