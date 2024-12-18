@@ -1,5 +1,11 @@
 package classfileparser
 
+import (
+	"bytes"
+	"encoding/binary"
+	"io"
+)
+
 type Attributes struct {
 	Code                                 []Code                                 `json:",omitempty"`
 	ConstantValue                        []ConstantValue                        `json:",omitempty"`
@@ -34,7 +40,7 @@ type Code struct {
 	MaxLocals      uint16
 	Code           []byte
 	ExceptionTable []ExceptionTableEntry
-	Attributes     []AttributeInfo
+	Attributes     Attributes
 }
 
 // ConstantValue : Attribut d'un champ constant
@@ -263,13 +269,42 @@ func parseAttributes(attributes []AttributeInfo, cp *ConstantPool) Attributes {
 		reader := bytes.NewReader(a.Info)
 		switch cp.Utf8[a.AttributeNameIndex] {
 		case "Code": // TODO
-			attr.Code = append(attr.Code, Code{
-				MaxStack:       0,
-				MaxLocals:      0,
-				Code:           a.Info,
-				ExceptionTable: []ExceptionTableEntry{},
-				Attributes:     []AttributeInfo{},
-			})
+			var code Code
+
+			binary.Read(reader, binary.BigEndian, &code.MaxStack)
+			binary.Read(reader, binary.BigEndian, &code.MaxLocals)
+
+			var codeLength uint32
+			binary.Read(reader, binary.BigEndian, &codeLength)
+			code.Code = make([]byte, codeLength)
+			io.ReadFull(reader, code.Code)
+
+			var exceptionTableLength uint16
+			binary.Read(reader, binary.BigEndian, &exceptionTableLength)
+			code.ExceptionTable = make([]ExceptionTableEntry, exceptionTableLength)
+			for i := 0; i < int(exceptionTableLength); i++ {
+				exception := &ExceptionTableEntry{}
+				binary.Read(reader, binary.BigEndian, &exception.StartPc)
+				binary.Read(reader, binary.BigEndian, &exception.EndPc)
+				binary.Read(reader, binary.BigEndian, &exception.HandlerPc)
+				binary.Read(reader, binary.BigEndian, &exception.CatchType)
+				code.ExceptionTable[i] = *exception
+			}
+
+			var attributesCount uint16
+			binary.Read(reader, binary.BigEndian, &attributesCount)
+			nestedAttributes := make([]AttributeInfo, attributesCount)
+			for i := 0; i < int(attributesCount); i++ {
+				attribute := &AttributeInfo{}
+				binary.Read(reader, binary.BigEndian, &attribute.AttributeNameIndex)
+				binary.Read(reader, binary.BigEndian, &attribute.AttributeLength)
+				attribute.Info = make([]byte, attribute.AttributeLength)
+				io.ReadFull(reader, attribute.Info)
+				nestedAttributes[i] = *attribute
+			}
+			code.Attributes = parseAttributes(nestedAttributes, cp)
+
+			attr.Code = append(attr.Code, code)
 			break
 		case "ConstantValue": // TODO
 			attr.ConstantValue = append(attr.ConstantValue, ConstantValue{})
