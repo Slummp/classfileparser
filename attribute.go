@@ -257,9 +257,10 @@ type ModuleRequire struct {
 }
 
 func parseAttributes(attributes []AttributeInfo, cp *ConstantPool) Attributes {
-	attr := Attributes{}
+	attr := &Attributes{}
 
 	for _, a := range attributes {
+		reader := bytes.NewReader(a.Info)
 		switch cp.Utf8[a.AttributeNameIndex] {
 		case "Code": // TODO
 			attr.Code = append(attr.Code, Code{
@@ -345,5 +346,5 @@ func parseAttributes(attributes []AttributeInfo, cp *ConstantPool) Attributes {
 		}
 	}
 
-	return attr
+	return *attr
 }
