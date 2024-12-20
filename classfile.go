@@ -52,7 +52,7 @@ func (cf *ClassFile) GetClassFile() (*Class, error) {
 	fields := []Field{}
 	for _, f := range cf.Fields {
 		fields = append(fields, Field{
-			Access:     findFlags(FieldType, f.AccessFlags),
+			Access:     findFlags(FieldT, f.AccessFlags),
 			Name:       cp.Utf8[f.NameIndex],
 			Type:       cp.Utf8[f.DescriptorIndex],
 			Attributes: parseAttributes(f.Attributes, cp),
@@ -63,7 +63,7 @@ func (cf *ClassFile) GetClassFile() (*Class, error) {
 	for _, m := range cf.Methods {
 		paramsTypes, returnType := readSignature(cp.Utf8[m.DescriptorIndex])
 		methods = append(methods, Method{
-			Access:      findFlags(MethodType, m.AccessFlags),
+			Access:      findFlags(MethodT, m.AccessFlags),
 			Name:        cp.Utf8[m.NameIndex],
 			ReturnType:  returnType,
 			ParamsTypes: paramsTypes,
@@ -79,7 +79,7 @@ func (cf *ClassFile) GetClassFile() (*Class, error) {
 			MinorVersion: cf.MinorVersion,
 			MajorVersion: cf.MajorVersion,
 		},
-		Access:     findFlags(ClassType, cf.AccessFlags),
+		Access:     findFlags(ClassT, cf.AccessFlags),
 		ThisClass:  cp.Class[cf.ThisClass],
 		SuperClass: cp.Class[cf.SuperClass],
 		Interfaces: interfaces,

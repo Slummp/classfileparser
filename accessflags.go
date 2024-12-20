@@ -3,14 +3,14 @@ package classfileparser
 type Type uint8
 
 const (
-	ClassType Type = iota
-	FieldType
-	MethodType
-	NestedType
+	ClassT Type = iota
+	FieldT
+	MethodT
+	NestedT
 )
 
 var flags map[Type]map[int]string = map[Type]map[int]string{
-	ClassType: {
+	ClassT: {
 		0x0001: "ACC_PUBLIC",
 		0x0010: "ACC_FINAL",
 		0x0020: "ACC_SUPER",
@@ -21,7 +21,7 @@ var flags map[Type]map[int]string = map[Type]map[int]string{
 		0x4000: "ACC_ENUM",
 		0x8000: "ACC_MODULE",
 	},
-	FieldType: {
+	FieldT: {
 		0x0001: "ACC_PUBLIC",
 		0x0002: "ACC_PRIVATE",
 		0x0004: "ACC_PROTECTED",
@@ -32,7 +32,7 @@ var flags map[Type]map[int]string = map[Type]map[int]string{
 		0x1000: "ACC_SYNTHETIC",
 		0x4000: "ACC_ENUM",
 	},
-	MethodType: {
+	MethodT: {
 		0x0001: "ACC_PUBLIC",
 		0x0002: "ACC_PRIVATE",
 		0x0004: "ACC_PROTECTED",
@@ -46,7 +46,7 @@ var flags map[Type]map[int]string = map[Type]map[int]string{
 		0x0800: "ACC_STRICT",
 		0x1000: "ACC_SYNTHETIC",
 	},
-	NestedType: {
+	NestedT: {
 		0x0001: "ACC_PUBLIC",
 		0x0002: "ACC_PRIVATE",
 		0x0004: "ACC_PROTECTED",
