@@ -6,33 +6,7 @@ import (
 	"io"
 )
 
-type Attributes struct {
-	Code                                 []Code                                 `json:",omitempty"`
-	ConstantValue                        []ConstantValue                        `json:",omitempty"`
-	Deprecated                           []Deprecated                           `json:",omitempty"`
-	Exceptions                           []Exceptions                           `json:",omitempty"`
-	InnerClasses                         []InnerClasses                         `json:",omitempty"`
-	LineNumberTable                      []LineNumberTable                      `json:",omitempty"`
-	LocalVariableTable                   []LocalVariableTable                   `json:",omitempty"`
-	LocalVariableTypeTable               []LocalVariableTypeTable               `json:",omitempty"`
-	MethodParameters                     []MethodParameters                     `json:",omitempty"`
-	RuntimeVisibleAnnotations            []RuntimeVisibleAnnotations            `json:",omitempty"`
-	RuntimeInvisibleAnnotations          []RuntimeInvisibleAnnotations          `json:",omitempty"`
-	RuntimeVisibleParameterAnnotations   []RuntimeVisibleParameterAnnotations   `json:",omitempty"`
-	RuntimeInvisibleParameterAnnotations []RuntimeInvisibleParameterAnnotations `json:",omitempty"`
-	SourceFile                           []SourceFile                           `json:",omitempty"`
-	SourceDebugExtension                 []SourceDebugExtension                 `json:",omitempty"`
-	Signature                            []Signature                            `json:",omitempty"`
-	StackMapTable                        []StackMapTable                        `json:",omitempty"`
-	Synthetic                            []Synthetic                            `json:",omitempty"`
-	EnclosingMethod                      []EnclosingMethod                      `json:",omitempty"`
-	BootstrapMethods                     []BootstrapMethods                     `json:",omitempty"`
-	Module                               []Module                               `json:",omitempty"`
-	ModulePackages                       []ModulePackages                       `json:",omitempty"`
-	NestHost                             []NestHost                             `json:",omitempty"`
-	NestMembers                          []NestMembers                          `json:",omitempty"`
-	PermittedSubclasses                  []PermittedSubclasses                  `json:",omitempty"`
-}
+type Attribute interface{}
 
 // Code : Contient le bytecode et les informations relatives à la méthode.
 type Code struct {
@@ -40,7 +14,7 @@ type Code struct {
 	MaxLocals      uint16
 	Code           []byte
 	ExceptionTable []ExceptionTableEntry
-	Attributes     Attributes
+	Attributes     []Attribute
 }
 
 // ConstantValue : Attribut d'un champ constant
@@ -147,8 +121,8 @@ type BootstrapMethods struct {
 	BootstrapMethods    []BootstrapMethod
 }
 
-// Module : Attribut contenant des informations sur un module
-type Module struct {
+// ModuleInfo : Attribut contenant des informations sur un module
+type ModuleInfo struct {
 	NameIndex uint16
 	Flags     uint16
 	Requires  []ModuleRequire
@@ -262,12 +236,11 @@ type ModuleRequire struct {
 	VersionIndex uint16
 }
 
-func parseAttributes(attributes []AttributeInfo, cp *ConstantPool) Attributes {
-	attr := &Attributes{}
-
+func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
+	var attr []Attribute
 	for _, a := range attributes {
 		reader := bytes.NewReader(a.Info)
-		switch cp.Utf8[a.AttributeNameIndex] {
+		switch cp[a.AttributeNameIndex].(Utf8) {
 		case "Code": // TODO
 			var code Code
 
@@ -304,82 +277,82 @@ func parseAttributes(attributes []AttributeInfo, cp *ConstantPool) Attributes {
 			}
 			code.Attributes = parseAttributes(nestedAttributes, cp)
 
-			attr.Code = append(attr.Code, code)
+			attr = append(attr, code)
 			break
 		case "ConstantValue": // TODO
-			attr.ConstantValue = append(attr.ConstantValue, ConstantValue{})
+			attr = append(attr, ConstantValue{})
 			break
 		case "Deprecated": // TODO
-			attr.Deprecated = append(attr.Deprecated, Deprecated{})
+			attr = append(attr, Deprecated{})
 			break
 		case "Exceptions": // TODO
-			attr.Exceptions = append(attr.Exceptions, Exceptions{})
+			attr = append(attr, Exceptions{})
 			break
 		case "InnerClasses": // TODO
-			attr.InnerClasses = append(attr.InnerClasses, InnerClasses{})
+			attr = append(attr, InnerClasses{})
 			break
 		case "LineNumberTable": // TODO
-			attr.LineNumberTable = append(attr.LineNumberTable, LineNumberTable{})
+			attr = append(attr, LineNumberTable{})
 			break
 		case "LocalVariableTable": // TODO
-			attr.LocalVariableTable = append(attr.LocalVariableTable, LocalVariableTable{})
+			attr = append(attr, LocalVariableTable{})
 			break
 		case "LocalVariableTypeTable": // TODO
-			attr.LocalVariableTypeTable = append(attr.LocalVariableTypeTable, LocalVariableTypeTable{})
+			attr = append(attr, LocalVariableTypeTable{})
 			break
 		case "MethodParameters": // TODO
-			attr.MethodParameters = append(attr.MethodParameters, MethodParameters{})
+			attr = append(attr, MethodParameters{})
 			break
 		case "RuntimeVisibleAnnotations": // TODO
-			attr.RuntimeVisibleAnnotations = append(attr.RuntimeVisibleAnnotations, RuntimeVisibleAnnotations{})
+			attr = append(attr, RuntimeVisibleAnnotations{})
 			break
 		case "RuntimeInvisibleAnnotations": // TODO
-			attr.RuntimeInvisibleAnnotations = append(attr.RuntimeInvisibleAnnotations, RuntimeInvisibleAnnotations{})
+			attr = append(attr, RuntimeInvisibleAnnotations{})
 			break
 		case "RuntimeVisibleParameterAnnotations": // TODO
-			attr.RuntimeVisibleParameterAnnotations = append(attr.RuntimeVisibleParameterAnnotations, RuntimeVisibleParameterAnnotations{})
+			attr = append(attr, RuntimeVisibleParameterAnnotations{})
 			break
 		case "RuntimeInvisibleParameterAnnotations": // TODO
-			attr.RuntimeInvisibleParameterAnnotations = append(attr.RuntimeInvisibleParameterAnnotations, RuntimeInvisibleParameterAnnotations{})
+			attr = append(attr, RuntimeInvisibleParameterAnnotations{})
 			break
 		case "SourceFile": // TODO
-			attr.SourceFile = append(attr.SourceFile, SourceFile{})
+			attr = append(attr, SourceFile{})
 			break
 		case "SourceDebugExtension": // TODO
-			attr.SourceDebugExtension = append(attr.SourceDebugExtension, SourceDebugExtension{})
+			attr = append(attr, SourceDebugExtension{})
 			break
 		case "Signature": // TODO
-			attr.Signature = append(attr.Signature, Signature{})
+			attr = append(attr, Signature{})
 			break
 		case "StackMapTable": // TODO
-			attr.StackMapTable = append(attr.StackMapTable, StackMapTable{})
+			attr = append(attr, StackMapTable{})
 			break
 		case "Synthetic": // TODO
-			attr.Synthetic = append(attr.Synthetic, Synthetic{})
+			attr = append(attr, Synthetic{})
 			break
 		case "EnclosingMethod": // TODO
-			attr.EnclosingMethod = append(attr.EnclosingMethod, EnclosingMethod{})
+			attr = append(attr, EnclosingMethod{})
 			break
 		case "BootstrapMethods": // TODO
-			attr.BootstrapMethods = append(attr.BootstrapMethods, BootstrapMethods{})
+			attr = append(attr, BootstrapMethods{})
 			break
 		case "Module": // TODO
-			attr.Module = append(attr.Module, Module{})
+			attr = append(attr, ModuleInfo{})
 			break
 		case "ModulePackages": // TODO
-			attr.ModulePackages = append(attr.ModulePackages, ModulePackages{})
+			attr = append(attr, ModulePackages{})
 			break
 		case "NestHost": // TODO
-			attr.NestHost = append(attr.NestHost, NestHost{})
+			attr = append(attr, NestHost{})
 			break
 		case "NestMembers": // TODO
-			attr.NestMembers = append(attr.NestMembers, NestMembers{})
+			attr = append(attr, NestMembers{})
 			break
 		case "PermittedSubclasses": // TODO
-			attr.PermittedSubclasses = append(attr.PermittedSubclasses, PermittedSubclasses{})
+			attr = append(attr, PermittedSubclasses{})
 			break
 		}
 	}
 
-	return *attr
+	return attr
 }

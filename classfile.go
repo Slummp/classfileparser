@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// Class represents the entire structure of a .class file
-type Class struct {
+// ClassStruct represents the entire structure of a .class file
+type ClassStruct struct {
 	Version struct {
 		MinorVersion uint16 // Minor version
 		MajorVersion uint16 // Major version
@@ -16,29 +16,29 @@ type Class struct {
 	SuperClass string   // Superclass
 	Interfaces []string // Interfaces
 
-	Fields     []Field    // Field structures
-	Methods    []Method   // Method structures
-	Attributes Attributes // Attribute structures
+	Fields     []Field     // Field structures
+	Methods    []Method    // Method structures
+	Attributes []Attribute // Attribute structures
 }
 
 // Field represents a field in the class
 type Field struct {
-	Access     []string   // Access flags for the field
-	Name       string     // Name of the field
-	Type       string     // Type of the field
-	Attributes Attributes // Field attributes
+	Access     []string    // Access flags for the field
+	Name       string      // Name of the field
+	Type       string      // Type of the field
+	Attributes []Attribute // Field attributes
 }
 
 // Method represents a method in the class
 type Method struct {
-	Access      []string   // Access flags for the method
-	Name        string     // Name of the method
-	ReturnType  string     // Return type of the method
-	ParamsTypes []string   // Type of the params of the method
-	Attributes  Attributes // Method attributes
+	Access      []string    // Access flags for the method
+	Name        string      // Name of the method
+	ReturnType  string      // Return type of the method
+	ParamsTypes []string    // Type of the params of the method
+	Attributes  []Attribute // Method attributes
 }
 
-func (cf *ClassFile) GetClassFile() (*Class, error) {
+func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 	cp, err := cf.GetConstantPool()
 	if err != nil {
 		panic(err)
@@ -46,32 +46,32 @@ func (cf *ClassFile) GetClassFile() (*Class, error) {
 
 	interfaces := []string{}
 	for _, i := range cf.Interfaces {
-		interfaces = append(interfaces, cp.Class[i])
+		interfaces = append(interfaces, string(cp[i].(Class)))
 	}
 
 	fields := []Field{}
 	for _, f := range cf.Fields {
 		fields = append(fields, Field{
 			Access:     findFlags(FieldT, f.AccessFlags),
-			Name:       cp.Utf8[f.NameIndex],
-			Type:       cp.Utf8[f.DescriptorIndex],
+			Name:       string(cp[f.NameIndex].(Utf8)),
+			Type:       string(cp[f.DescriptorIndex].(Utf8)),
 			Attributes: parseAttributes(f.Attributes, cp),
 		})
 	}
 
 	methods := []Method{}
 	for _, m := range cf.Methods {
-		paramsTypes, returnType := readSignature(cp.Utf8[m.DescriptorIndex])
+		paramsTypes, returnType := readSignature(string(cp[m.DescriptorIndex].(Utf8)))
 		methods = append(methods, Method{
 			Access:      findFlags(MethodT, m.AccessFlags),
-			Name:        cp.Utf8[m.NameIndex],
+			Name:        string(cp[m.NameIndex].(Utf8)),
 			ReturnType:  returnType,
 			ParamsTypes: paramsTypes,
 			Attributes:  parseAttributes(m.Attributes, cp),
 		})
 	}
 
-	return &Class{
+	return &ClassStruct{
 		Version: struct {
 			MinorVersion uint16
 			MajorVersion uint16
@@ -80,8 +80,8 @@ func (cf *ClassFile) GetClassFile() (*Class, error) {
 			MajorVersion: cf.MajorVersion,
 		},
 		Access:     findFlags(ClassT, cf.AccessFlags),
-		ThisClass:  cp.Class[cf.ThisClass],
-		SuperClass: cp.Class[cf.SuperClass],
+		ThisClass:  string(cp[cf.ThisClass].(Class)),
+		SuperClass: string(cp[cf.SuperClass].(Class)),
 		Interfaces: interfaces,
 		Fields:     fields,
 		Methods:    methods,
