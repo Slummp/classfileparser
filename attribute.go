@@ -3,6 +3,7 @@ package classfileparser
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -944,6 +945,8 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					binary.Read(reader, binary.BigEndian, &instr.Offset)
 					code.Code = append(code.Code, instr)
 					break
+				default:
+					panic(fmt.Errorf("unknown opcode: %0x", opcode))
 				}
 			}
 
