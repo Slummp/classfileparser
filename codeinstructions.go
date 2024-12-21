@@ -59,9 +59,7 @@ type Sipush struct {
 }
 
 // ldc (0x12) : Push item from run-time constant pool
-type Ldc struct {
-	uint8 // index in constant pool (not long/double)
-}
+type Ldc interface{} // index in constant pool (not long/double)
 
 // ldc_w (0x13) : Push item from run-time constant pool (wide index)
 type LdcW struct {

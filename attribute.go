@@ -319,11 +319,11 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					binary.Read(reader, binary.BigEndian, &instr.Short)
 					code.Code = append(code.Code, instr)
 					break
-				// case 0x12:
-				// 	var cpIndex uint16
-				// 	binary.Read(reader, binary.BigEndian, &cpIndex)
-				// 	code.Code = append(code.Code, Ldc{})
-				// 	break
+				case 0x12:
+					var cpIndex uint8
+					binary.Read(reader, binary.BigEndian, &cpIndex)
+					code.Code = append(code.Code, Ldc(cp[uint16(cpIndex)]))
+					break
 				// case 0x13:
 				// 	var cpIndex uint16
 				// 	binary.Read(reader, binary.BigEndian, &cpIndex)
@@ -687,9 +687,12 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 				case 0x83:
 					code.Code = append(code.Code, Lxor{})
 					break
-				// case 0x84:
-				// 	code.Code = append(code.Code, Iinc{})
-				// 	break
+				case 0x84:
+					var instr Iinc
+					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					binary.Read(reader, binary.BigEndian, &instr.Const)
+					code.Code = append(code.Code, instr)
+					break
 				case 0x85:
 					code.Code = append(code.Code, I2l{})
 					break
