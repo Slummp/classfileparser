@@ -41,7 +41,7 @@ type Method struct {
 func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 	cp, err := cf.GetConstantPool()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	interfaces := []string{}
