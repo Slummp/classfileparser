@@ -62,14 +62,10 @@ type Sipush struct {
 type Ldc interface{} // index in constant pool (not long/double)
 
 // LdcW - ldc_w (0x13) : Push item from run-time constant pool (wide index)
-type LdcW struct {
-	uint16 // index in constant pool (not long/double)
-}
+type LdcW interface{} // index in constant pool (not long/double)
 
 // Ldc2W - ldc2_w (0x14) : Push long or double from run-time constant pool (wide index)
-type Ldc2W struct {
-	uint16 // index in constant pool (not int/float/string)
-}
+type Ldc2W interface{} // index in constant pool (not int/float/string)
 
 // Iload - iload (0x15) : Load int from local variable
 type Iload struct {
@@ -659,27 +655,24 @@ type Invokestatic struct {
 	Type  string
 }
 
-// // Invokeinterface - invokeinterface (0xB9) : Invoke interface method // TODO
-// type Invokeinterface struct {
-// 	uint16 // index in constant pool (InterfaceMethodref)
-// 	uint8  // count
-// 	uint8  // 0
-// }
+// Invokeinterface - invokeinterface (0xB9) : Invoke interface method // TODO
+type Invokeinterface struct {
+	InterfaceMethodref InterfaceMethodref
+	Count              uint8
+}
 
-// // Invokedynamic - invokedynamic (0xBA) : Invoke a dynamically-computed call site // TODO
-// type Invokedynamic struct {
-// 	uint16 // index in constant pool (InvokeDynamic)
-// 	uint8  // 0
-// 	uint8  // 0
-// }
+// Invokedynamic - invokedynamic (0xBA) : Invoke a dynamically-computed call site // TODO
+type Invokedynamic struct {
+	InvokeDynamic InvokeDynamic
+}
 
 // New - new (0xBB) : Create new object
 type New string
 
-// // Newarray - newarray (0xBC) : Create new array // TODO
-// type Newarray struct {
-// 	uint8 // type -> T_BOOLEAN=4 ; T_CHAR=5 ; T_FLOAT=6 ; T_DOUBLE=7 ; T_BYTE=8 ; T_SHORT=9 ; T_INT=10 ; T_LONG=11
-// }
+// Newarray - newarray (0xBC) : Create new array // TODO
+type Newarray struct {
+	Type uint8 // type -> T_BOOLEAN=4 ; T_CHAR=5 ; T_FLOAT=6 ; T_DOUBLE=7 ; T_BYTE=8 ; T_SHORT=9 ; T_INT=10 ; T_LONG=11
+}
 
 // Anewarray - anewarray (0xBD) : Create new array of reference
 type Anewarray string
@@ -702,17 +695,17 @@ type Monitorenter struct{}
 // Monitorexit - monitorexit (0xC3) : Exit monitor for object
 type Monitorexit struct{}
 
-// // Wide - wide (0xC4) : Extend local variable index by additional bytes // TODO
-// type Wide struct {
-//   uint8 // opcode in iload fload aload lload dload istore fstore astore lstore dstore ret iinc
-//   LocalIndex uint16 // local variable index
-//   [uint16] // const value ONLY in iinc case
-// }
+// Wide - wide (0xC4) : Extend local variable index by additional bytes // TODO
+type Wide struct {
+	OpCode     uint8  // opcode in iload fload aload lload dload istore fstore astore lstore dstore ret iinc
+	LocalIndex uint16 // local variable index
+	Const      uint16 // const value ONLY in iinc case
+}
 
 // Multianewarray - multianewarray (0xC5) : Create new multidimensional array
 type Multianewarray struct {
-	uint16          // index in constant pool (Class)
-	Dimension uint8 // dimension >= 1
+	Class     string // index in constant pool (Class)
+	Dimension uint8  // dimension >= 1
 }
 
 // Ifnull - ifnull (0xC6) : Branch if reference is null
