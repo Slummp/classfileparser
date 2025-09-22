@@ -573,7 +573,7 @@ type Ret struct {
 
 // // Tableswitch - tableswitch (0xAA) : Access jump table by index and jump // TODO
 // type Tableswitch struct {
-//   [0] // 0 à 3 octets vide pour le padding
+//   [0] // 0 to 3 empty bytes for padding
 //   int32 // default offset
 //   int32 // low (<= high)
 //   int32 // high (>= low)
@@ -582,7 +582,7 @@ type Ret struct {
 
 // // Lookupswitch - lookupswitch (0xAB) : Access jump table by key match and jump // TODO
 // type Lookupswitch struct {
-//   [0] // 0 à 3 octets vide pour le padding
+//   [0] // 0 to 3 empty bytes for padding
 //   int32 // default offset
 //   int32 // pairs length >= 0
 //   [int32 int32] // pairs (match - offset)

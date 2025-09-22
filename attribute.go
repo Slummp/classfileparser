@@ -7,9 +7,10 @@ import (
 	"io"
 )
 
+// Attribute represents a generic attribute found in a JVM class file.
 type Attribute interface{}
 
-// Code : Contient le bytecode et les informations relatives à la méthode.
+// Code holds the bytecode and the method metadata.
 type Code struct {
 	MaxStack       uint16
 	MaxLocals      uint16
@@ -18,139 +19,139 @@ type Code struct {
 	Attributes     []Attribute
 }
 
-// ConstantValue : Attribut d'un champ constant
+// ConstantValue is the attribute for a constant field.
 type ConstantValue struct {
 	ConstantValueIndex uint16
 }
 
-// Deprecated : Attribut indiquant qu'une méthode est obsolète
+// Deprecated marks a method as obsolete.
 type Deprecated struct{}
 
-// Exceptions : Attribut indiquant les exceptions vérifiées lancées par une méthode
+// Exceptions lists the checked exceptions thrown by a method.
 type Exceptions struct {
 	NumberOfExceptions  uint16
 	ExceptionIndexTable []uint16
 }
 
-// InnerClasses : Attribut contenant des informations sur les classes internes
+// InnerClasses stores information about nested classes.
 type InnerClasses struct {
 	NumberOfClasses uint16
 	InnerClassInfo  []InnerClassInfo
 }
 
-// LineNumberTable : Attribut de correspondance entre les lignes source et le bytecode
+// LineNumberTable links source lines to bytecode positions.
 type LineNumberTable struct {
 	LineNumberTableLength uint16
 	LineNumberTable       []LineNumberTableEntry
 }
 
-// LocalVariableTable : Attribut contenant des informations sur les variables locales
+// LocalVariableTable stores information about local variables.
 type LocalVariableTable struct {
 	LocalVariableTableLength uint16
 	LocalVariableTable       []LocalVariableEntry
 }
 
-// LocalVariableTypeTable : Attribut contenant des informations sur les types des variables locales
+// LocalVariableTypeTable stores generic type information for local variables.
 type LocalVariableTypeTable struct {
 	LocalVariableTypeTableLength uint16
 	LocalVariableTypeTable       []LocalVariableTypeEntry
 }
 
-// MethodParameters : Attribut contenant des informations sur les paramètres de la méthode
+// MethodParameters lists information about the method parameters.
 type MethodParameters struct {
 	MethodParametersCount uint16
 	MethodParameters      []MethodParameter
 }
 
-// RuntimeVisibleAnnotations : Attribut contenant des annotations visibles à l'exécution
+// RuntimeVisibleAnnotations contains runtime-visible annotations.
 type RuntimeVisibleAnnotations struct {
 	NumAnnotations uint16
 	Annotations    []Annotation
 }
 
-// RuntimeInvisibleAnnotations : Attribut contenant des annotations invisibles à l'exécution
+// RuntimeInvisibleAnnotations contains runtime-invisible annotations.
 type RuntimeInvisibleAnnotations struct {
 	NumAnnotations uint16
 	Annotations    []Annotation
 }
 
-// RuntimeVisibleParameterAnnotations : Attribut contenant des annotations visibles pour les paramètres
+// RuntimeVisibleParameterAnnotations stores runtime-visible parameter annotations.
 type RuntimeVisibleParameterAnnotations struct {
 	NumParameters        uint16
 	ParameterAnnotations []ParameterAnnotation
 }
 
-// RuntimeInvisibleParameterAnnotations : Attribut contenant des annotations invisibles pour les paramètres
+// RuntimeInvisibleParameterAnnotations stores runtime-invisible parameter annotations.
 type RuntimeInvisibleParameterAnnotations struct {
 	NumParameters        uint16
 	ParameterAnnotations []ParameterAnnotation
 }
 
-// SourceFile : Attribut contenant le nom du fichier source
+// SourceFile holds the source file name.
 type SourceFile struct {
 	SourcefileIndex uint16
 }
 
-// SourceDebugExtension : Attribut contenant des données de débogage source
+// SourceDebugExtension holds source debugging data.
 type SourceDebugExtension struct {
 	DebugExtension []byte
 }
 
-// Signature : Attribut contenant la signature d'une classe, méthode ou champ
+// Signature stores the signature of a class, method, or field.
 type Signature string
 
-// StackMapTable : Attribut contenant des informations sur la pile et les variables locales
+// StackMapTable stores stack and local variable verification data.
 type StackMapTable struct {
 	NumberOfEntries uint16
 	Entries         []StackMapFrame
 }
 
-// Synthetic : Attribut indiquant que l'élément est synthétique
+// Synthetic marks an element as synthetic.
 type Synthetic struct{}
 
-// EnclosingMethod : Attribut indiquant la méthode englobante
+// EnclosingMethod records the enclosing method.
 type EnclosingMethod struct {
 	ClassIndex  uint16
 	MethodIndex uint16
 }
 
-// BootstrapMethods : Attribut contenant des méthodes de bootstrap
+// BootstrapMethods lists bootstrap methods.
 type BootstrapMethods struct {
 	NumBootstrapMethods uint16
 	BootstrapMethods    []BootstrapMethod
 }
 
-// ModuleInfo : Attribut contenant des informations sur un module
+// ModuleInfo stores module metadata.
 type ModuleInfo struct {
 	NameIndex uint16
 	Flags     uint16
 	Requires  []ModuleRequire
 }
 
-// ModulePackages : Attribut contenant des informations sur les packages d'un module
+// ModulePackages stores the packages declared in a module.
 type ModulePackages struct {
 	NumberOfPackages uint16
 	PackageIndex     []uint16
 }
 
-// NestHost : Attribut contenant la classe hôte
+// NestHost stores the host class.
 type NestHost struct {
 	HostClassIndex uint16
 }
 
-// NestMembers : Attribut contenant des informations sur les classes membres
+// NestMembers lists the member classes.
 type NestMembers struct {
 	NumberOfMembers uint16
 	ClassIndex      []uint16
 }
 
-// PermittedSubclasses : Attribut contenant des informations sur les sous-classes autorisées
+// PermittedSubclasses lists the permitted subclasses.
 type PermittedSubclasses struct {
 	NumberOfSubclasses uint16
 	SubclassIndex      []uint16
 }
 
-// ExceptionTableEntry : Définition des structures supplémentaires nécessaires pour les attributs
+// ExceptionTableEntry describes the additional entries needed for attributes.
 type ExceptionTableEntry struct {
 	StartPc   uint16
 	EndPc     uint16
@@ -158,6 +159,7 @@ type ExceptionTableEntry struct {
 	CatchType uint16
 }
 
+// InnerClassInfo describes an InnerClasses entry.
 type InnerClassInfo struct {
 	InnerClassIndex       uint16
 	OuterClassIndex       uint16
@@ -165,11 +167,13 @@ type InnerClassInfo struct {
 	InnerClassAccessFlags uint16
 }
 
+// LineNumberTableEntry links a bytecode position to a source line.
 type LineNumberTableEntry struct {
 	StartPc    uint16
 	LineNumber uint16
 }
 
+// LocalVariableEntry details a local variable in the dedicated table.
 type LocalVariableEntry struct {
 	StartPc        uint16
 	Length         uint16
@@ -178,6 +182,7 @@ type LocalVariableEntry struct {
 	Index          uint16
 }
 
+// LocalVariableTypeEntry specifies the generic type of a local variable.
 type LocalVariableTypeEntry struct {
 	StartPc        uint16
 	Length         uint16
@@ -186,49 +191,58 @@ type LocalVariableTypeEntry struct {
 	Index          uint16
 }
 
+// MethodParameter describes a method parameter.
 type MethodParameter struct {
 	NameIndex   uint16
 	AccessFlags uint16
 }
 
+// Annotation represents a JVM annotation.
 type Annotation struct {
 	TypeIndex            uint16
 	NumElementValuePairs uint16
 	ElementValuePairs    []ElementValuePair
 }
 
+// ParameterAnnotation groups the annotations of a method parameter.
 type ParameterAnnotation struct {
 	NumAnnotations uint16
 	Annotations    []Annotation
 }
 
+// ElementValuePair associates an element name with an annotation value.
 type ElementValuePair struct {
 	ElementNameIndex uint16
 	Value            ElementValue
 }
 
+// ElementValue holds an annotation value.
 type ElementValue struct {
 	Tag   uint8
 	Value uint16
 }
 
+// StackMapFrame describes a frame of the StackMapTable.
 type StackMapFrame struct {
 	FrameType   uint8
 	OffsetDelta uint16
 	StackItems  []StackItem
 }
 
+// StackItem represents a stack element inside the StackMapTable.
 type StackItem struct {
 	Tag   uint8
 	Value uint16
 }
 
+// BootstrapMethod references a bootstrap method and its arguments.
 type BootstrapMethod struct {
 	MethodRefIndex uint16
 	ArgumentsCount uint16
 	Arguments      []uint16
 }
 
+// ModuleRequire describes a requires entry of a ModuleInfo.
 type ModuleRequire struct {
 	NameIndex    uint16
 	Flags        uint16

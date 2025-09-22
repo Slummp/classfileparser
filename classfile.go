@@ -37,6 +37,7 @@ type Method struct {
 	Attributes  []Attribute // Method attributes
 }
 
+// GetClassFile converts the parsed binary data into a structured ClassStruct snapshot
 func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 	cp, err := cf.GetConstantPool()
 	if err != nil {

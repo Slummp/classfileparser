@@ -1,11 +1,16 @@
 package classfileparser
 
+// Type categorizes the different sets of JVM access flags.
 type Type uint8
 
 const (
+	// ClassT describes the access flags applicable to a class.
 	ClassT Type = iota
+	// FieldT describes the access flags applicable to a field.
 	FieldT
+	// MethodT describes the access flags applicable to a method.
 	MethodT
+	// NestedT describes the access flags applicable to a nested class.
 	NestedT
 )
 

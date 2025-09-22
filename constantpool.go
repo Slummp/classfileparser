@@ -5,41 +5,52 @@ import (
 	"math"
 )
 
+// ConstantPool is a typed view of the constant pool, indexed by the JVM slot number
 type ConstantPool map[uint16]interface{}
 
+// Utf8 represents a CONSTANT_Utf8 entry decoded as a Go string
 type Utf8 string
 
+// Class represents a CONSTANT_Class entry resolved to its internal JVM name
 type Class string
 
+// MethodType represents a CONSTANT_MethodType signature descriptor
 type MethodType string
 
+// Module describes a CONSTANT_Module entry holding a module name
 type Module string
 
+// Package describes a CONSTANT_Package entry holding a package name
 type Package string
 
+// Fieldref bundles class/name/type info from a CONSTANT_Fieldref entry
 type Fieldref struct {
 	Class string
 	Name  string
 	Type  string
 }
 
+// Methodref bundles class/name/type info from a CONSTANT_Methodref entry
 type Methodref struct {
 	Class string
 	Name  string
 	Type  string
 }
 
+// InterfaceMethodref bundles class/name/type info from a CONSTANT_InterfaceMethodref entry
 type InterfaceMethodref struct {
 	Class string
 	Name  string
 	Type  string
 }
 
+// NameAndType represents a CONSTANT_NameAndType entry
 type NameAndType struct {
 	Name string
 	Type string
 }
 
+// MethodHandle holds the decoded data of a CONSTANT_MethodHandle entry
 type MethodHandle struct {
 	Kind  string
 	Class string
@@ -47,18 +58,21 @@ type MethodHandle struct {
 	Type  string
 }
 
+// Dynamic represents a CONSTANT_Dynamic entry (bootstrap handling TODO)
 type Dynamic struct {
 	Name           string
 	Type           string
 	BootstrapIndex uint16
 }
 
+// InvokeDynamic represents a CONSTANT_InvokeDynamic entry (bootstrap handling TODO)
 type InvokeDynamic struct {
 	BootstrapIndex uint16
 	Name           string
 	Type           string
 }
 
+// GetConstantPool resolves the raw constant pool entries into typed Go values for easier access
 func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 	cp := ConstantPool{}
 	for i, cpItem := range cf.ConstantPool {
