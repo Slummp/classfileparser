@@ -144,6 +144,8 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 		case 20:
 			cp[uint16(i+1)] = Package(getString(cpItem.Info, cf.ConstantPool))
 			break
+		default:
+			continue
 		}
 	}
 	return cp, nil
