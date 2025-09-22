@@ -97,9 +97,7 @@ type SourceDebugExtension struct {
 }
 
 // Signature : Attribut contenant la signature d'une classe, méthode ou champ
-type Signature struct {
-	SignatureIndex uint16
-}
+type Signature string
 
 // StackMapTable : Attribut contenant des informations sur la pile et les variables locales
 type StackMapTable struct {
@@ -808,8 +806,10 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 			attr = append(attr, SourceFile{})
 		case "SourceDebugExtension": // TODO
 			attr = append(attr, SourceDebugExtension{})
-		case "Signature": // TODO
-			attr = append(attr, Signature{})
+		case "Signature":
+			var cpIndex uint16
+			binary.Read(reader, binary.BigEndian, &cpIndex)
+			attr = append(attr, Signature(cp[cpIndex].(Utf8)))
 		case "StackMapTable": // TODO
 			attr = append(attr, StackMapTable{})
 		case "Synthetic": // TODO
