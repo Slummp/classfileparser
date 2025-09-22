@@ -2,6 +2,7 @@ package classfileparser
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
 )
 
@@ -142,7 +143,7 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 		case 20:
 			cp[uint16(i+1)] = Package(getString(cpItem.Info, cf.ConstantPool))
 		default:
-			continue
+			return nil, fmt.Errorf("unknown constant pool tag: %d", cpItem.Tag)
 		}
 	}
 	return cp, nil
