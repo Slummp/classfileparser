@@ -254,7 +254,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 	for _, a := range attributes {
 		reader := bytes.NewReader(a.Info)
 		switch cp[a.AttributeNameIndex].(Utf8) {
-		case "Code": // TODO
+		case "Code":
 			var code Code
 
 			binary.Read(reader, binary.BigEndian, &code.MaxStack)
