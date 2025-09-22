@@ -98,10 +98,22 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 				getNameType(cpItem.Info, cf.ConstantPool)
 			break
 		case 15:
-			index := int8(binary.BigEndian.Uint16(cpItem.Info[0:2]))
-			cnt := getClassNameType(cpItem.Info[2:4], cf.ConstantPool)
+			item := cp[uint16(binary.BigEndian.Uint16(cpItem.Info[1:3]))]
+			var cnt struct {
+				Class string
+				Name  string
+				Type  string
+			}
+			switch itemTyped := item.(type) {
+			case Fieldref:
+				cnt = itemTyped
+			case Methodref:
+				cnt = itemTyped
+			case InterfaceMethodref:
+				cnt = itemTyped
+			}
 			cp[uint16(i+1)] = MethodHandle{
-				Kind: map[int8]string{
+				Kind: map[byte]string{
 					1: "getField",
 					2: "getStatic",
 					3: "putField",
@@ -111,7 +123,7 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 					7: "invokeSpecial",
 					8: "newInvokeSpecial",
 					9: "invokeInterface",
-				}[index],
+				}[cpItem.Info[0]],
 				Class: cnt.Class,
 				Name:  cnt.Name,
 				Type:  cnt.Type,
