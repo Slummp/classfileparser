@@ -65,38 +65,27 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 		switch cpItem.Tag {
 		case 1:
 			cp[uint16(i+1)] = Utf8(cpItem.Info)
-			break
 		case 3:
 			cp[uint16(i+1)] = int32(binary.BigEndian.Uint32(cpItem.Info))
-			break
 		case 4:
 			cp[uint16(i+1)] = math.Float32frombits(binary.BigEndian.Uint32(cpItem.Info))
-			break
 		case 5:
 			cp[uint16(i+1)] = int64(binary.BigEndian.Uint64(cpItem.Info))
-			break
 		case 6:
 			cp[uint16(i+1)] = math.Float64frombits(binary.BigEndian.Uint64(cpItem.Info))
-			break
 		case 7:
 			cp[uint16(i+1)] = Class(getString(cpItem.Info, cf.ConstantPool))
-			break
 		case 8:
 			cp[uint16(i+1)] = getString(cpItem.Info, cf.ConstantPool)
-			break
 		case 9:
 			cp[uint16(i+1)] = Fieldref(getClassNameType(cpItem.Info, cf.ConstantPool))
-			break
 		case 10:
 			cp[uint16(i+1)] = Methodref(getClassNameType(cpItem.Info, cf.ConstantPool))
-			break
 		case 11:
 			cp[uint16(i+1)] = InterfaceMethodref(getClassNameType(cpItem.Info, cf.ConstantPool))
-			break
 		case 12:
 			cp[uint16(i+1)] =
 				getNameType(cpItem.Info, cf.ConstantPool)
-			break
 		case 15:
 			item := cp[uint16(binary.BigEndian.Uint16(cpItem.Info[1:3]))]
 			var cnt struct {
@@ -128,22 +117,16 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 				Name:  cnt.Name,
 				Type:  cnt.Type,
 			}
-			break
 		case 16:
 			cp[uint16(i+1)] = MethodType(getString(cpItem.Info, cf.ConstantPool))
-			break
 		case 17:
 			cp[uint16(i+1)] = Dynamic{} // TODO
-			break
 		case 18:
 			cp[uint16(i+1)] = InvokeDynamic{} // TODO
-			break
 		case 19:
 			cp[uint16(i+1)] = Module(getString(cpItem.Info, cf.ConstantPool))
-			break
 		case 20:
 			cp[uint16(i+1)] = Package(getString(cpItem.Info, cf.ConstantPool))
-			break
 		default:
 			continue
 		}
