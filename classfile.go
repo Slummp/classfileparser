@@ -2,7 +2,6 @@ package classfileparser
 
 import (
 	"regexp"
-	"strings"
 )
 
 // ClassStruct represents the entire structure of a .class file
@@ -93,22 +92,9 @@ func readSignature(signature string) ([]string, string) {
 	re := regexp.MustCompile(`\((.*?)\)(.*)`)
 	matches := re.FindStringSubmatch(signature)
 	paramString, returnType := matches[1], matches[2]
-	params := extractParamTypes(paramString)
+
+	re = regexp.MustCompile(`(\[?(?:L.+?;|.))`)
+	params := re.FindAllString(paramString, -1)
 
 	return params, returnType
-}
-
-func extractParamTypes(paramString string) []string {
-	var params []string
-	for len(paramString) > 0 {
-		if paramString[0] == 'L' {
-			end := strings.Index(paramString, ";") + 1
-			params = append(params, paramString[:end])
-			paramString = paramString[end:]
-		} else {
-			params = append(params, string(paramString[0]))
-			paramString = paramString[1:]
-		}
-	}
-	return params
 }
