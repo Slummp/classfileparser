@@ -78,6 +78,8 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 	cp := ConstantPool{}
 	for i, cpItem := range cf.ConstantPool {
 		switch cpItem.Tag {
+		case 0:
+			continue
 		case 1:
 			cp[uint16(i+1)] = Utf8(cpItem.Info)
 		case 3:
