@@ -12,7 +12,7 @@ type ClassStruct struct {
 	}
 	Access     []string // Access flags (e.g., public, final)
 	ThisClass  string   // Current class
-	SuperClass string   // Superclass
+	SuperClass string   // Superclass (empty for java/lang/Object and module-info)
 	Interfaces []string // Interfaces
 
 	Fields     []Field     // Field structures
@@ -71,6 +71,11 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 		})
 	}
 
+	var superClass string
+	if cf.SuperClass != 0 {
+		superClass = string(cp[cf.SuperClass].(Class))
+	}
+
 	return &ClassStruct{
 		Version: struct {
 			MinorVersion uint16
@@ -81,7 +86,7 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 		},
 		Access:     findFlags(ClassT, cf.AccessFlags),
 		ThisClass:  string(cp[cf.ThisClass].(Class)),
-		SuperClass: string(cp[cf.SuperClass].(Class)),
+		SuperClass: superClass,
 		Interfaces: interfaces,
 		Fields:     fields,
 		Methods:    methods,
