@@ -210,3 +210,16 @@ func getClassNameType(i []byte, cp []CpInfo) (ref struct {
 	ref.Name, ref.Type = nt.Name, nt.Type
 	return ref, err
 }
+
+func getConstant[T any](cp ConstantPool, index uint16) (T, error) {
+	var value T
+	entry, ok := cp[index]
+	if !ok {
+		return value, fmt.Errorf("invalid constant pool index: %d", index)
+	}
+	value, ok = entry.(T)
+	if !ok {
+		return value, fmt.Errorf("invalid constant pool type at index %d: %T", index, entry)
+	}
+	return value, nil
+}

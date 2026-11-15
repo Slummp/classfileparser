@@ -253,7 +253,10 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 	var attr []Attribute
 	for _, a := range attributes {
 		reader := &binaryReader{Reader: bytes.NewReader(a.Info)}
-		name := cp[a.AttributeNameIndex].(Utf8)
+		name, err := getConstant[Utf8](cp, a.AttributeNameIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read attribute name: %w", err)
+		}
 		switch name {
 		case "Code":
 			var code Code
@@ -313,15 +316,15 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 				case 0x12:
 					var cpIndex uint8
 					reader.read(&cpIndex)
-					code.Code = append(code.Code, Ldc(cp[uint16(cpIndex)]))
+					value, err := getConstant[interface{}](cp, uint16(cpIndex))
+					if err != nil {
+						reader.fail(err)
+					}
+					code.Code = append(code.Code, Ldc(value))
 				case 0x13:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, LdcW(cp[cpIndex]))
+					code.Code = append(code.Code, LdcW(readConstant[interface{}](reader, cp)))
 				case 0x14:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Ldc2W(cp[cpIndex]))
+					code.Code = append(code.Code, Ldc2W(readConstant[interface{}](reader, cp)))
 				case 0x15:
 					var instr Iload
 					reader.read(&instr.LocalIndex)
@@ -721,79 +724,53 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 				case 0xB1:
 					code.Code = append(code.Code, Return{})
 				case 0xB2:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Getstatic{Fieldref: cp[cpIndex].(Fieldref)})
+					code.Code = append(code.Code, Getstatic{Fieldref: readConstant[Fieldref](reader, cp)})
 				case 0xB3:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Putstatic{Fieldref: cp[cpIndex].(Fieldref)})
+					code.Code = append(code.Code, Putstatic{Fieldref: readConstant[Fieldref](reader, cp)})
 				case 0xB4:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Getfield{Fieldref: cp[cpIndex].(Fieldref)})
+					code.Code = append(code.Code, Getfield{Fieldref: readConstant[Fieldref](reader, cp)})
 				case 0xB5:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Putfield{Fieldref: cp[cpIndex].(Fieldref)})
+					code.Code = append(code.Code, Putfield{Fieldref: readConstant[Fieldref](reader, cp)})
 				case 0xB6:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Invokevirtual{Methodref: cp[cpIndex].(Methodref)})
+					code.Code = append(code.Code, Invokevirtual{Methodref: readConstant[Methodref](reader, cp)})
 				case 0xB7:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					ref, isInterface := methodTarget(cp[cpIndex])
+					ref, isInterface := readMethodTarget(reader, cp)
 					code.Code = append(code.Code, Invokespecial{Methodref: ref, IsInterface: isInterface})
 				case 0xB8:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					ref, isInterface := methodTarget(cp[cpIndex])
+					ref, isInterface := readMethodTarget(reader, cp)
 					code.Code = append(code.Code, Invokestatic{Methodref: ref, IsInterface: isInterface})
 				case 0xB9:
-					var cpIndex uint16
-					reader.read(&cpIndex)
 					instr := Invokeinterface{
-						InterfaceMethodref: cp[cpIndex].(InterfaceMethodref),
+						InterfaceMethodref: readConstant[InterfaceMethodref](reader, cp),
 					}
 					reader.read(&instr.Count)
 					var void byte
 					reader.read(&void)
 					code.Code = append(code.Code, instr)
 				case 0xBA:
-					var cpIndex uint16
-					reader.read(&cpIndex)
 					instr := Invokedynamic{
-						InvokeDynamic: cp[cpIndex].(InvokeDynamic),
+						InvokeDynamic: readConstant[InvokeDynamic](reader, cp),
 					}
 					var void byte
 					reader.read(&void)
 					reader.read(&void)
 					code.Code = append(code.Code, instr)
 				case 0xBB:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, New(cp[cpIndex].(Class)))
+					code.Code = append(code.Code, New(readConstant[Class](reader, cp)))
 				case 0xBC:
 					var instr Newarray
 					reader.read(&instr.Type)
 					code.Code = append(code.Code, instr)
 				case 0xBD:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Anewarray(cp[cpIndex].(Class)))
+					code.Code = append(code.Code, Anewarray(readConstant[Class](reader, cp)))
 				case 0xBE:
 					code.Code = append(code.Code, Arraylength{})
 				case 0xBF:
 					code.Code = append(code.Code, Athrow{})
 				case 0xC0:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Checkcast(cp[cpIndex].(Class)))
+					code.Code = append(code.Code, Checkcast(readConstant[Class](reader, cp)))
 				case 0xC1:
-					var cpIndex uint16
-					reader.read(&cpIndex)
-					code.Code = append(code.Code, Instanceof(cp[cpIndex].(Class)))
+					code.Code = append(code.Code, Instanceof(readConstant[Class](reader, cp)))
 				case 0xC2:
 					code.Code = append(code.Code, Monitorenter{})
 				case 0xC3:
@@ -807,10 +784,8 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 					}
 					code.Code = append(code.Code, instr)
 				case 0xC5:
-					var cpIndex uint16
-					reader.read(&cpIndex)
 					instr := Multianewarray{
-						Class: string(cp[cpIndex].(Class)),
+						Class: string(readConstant[Class](reader, cp)),
 					}
 					reader.read(&instr.Dimension)
 					code.Code = append(code.Code, instr)
@@ -904,9 +879,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 		case "SourceDebugExtension": // TODO
 			attr = append(attr, SourceDebugExtension{})
 		case "Signature":
-			var cpIndex uint16
-			reader.read(&cpIndex)
-			attr = append(attr, Signature(cp[cpIndex].(Utf8)))
+			attr = append(attr, Signature(readConstant[Utf8](reader, cp)))
 		case "StackMapTable": // TODO
 			attr = append(attr, StackMapTable{})
 		case "Synthetic": // TODO
@@ -961,9 +934,25 @@ func skipSwitchPadding(reader *binaryReader, codeStart int) {
 	}
 }
 
-func methodTarget(entry interface{}) (Methodref, bool) {
-	if ref, ok := entry.(InterfaceMethodref); ok {
+func readMethodTarget(reader *binaryReader, cp ConstantPool) (Methodref, bool) {
+	var index uint16
+	reader.read(&index)
+	if ref, ok := cp[index].(InterfaceMethodref); ok {
 		return Methodref(ref), true
 	}
-	return entry.(Methodref), false
+	ref, err := getConstant[Methodref](cp, index)
+	if err != nil {
+		reader.fail(err)
+	}
+	return ref, false
+}
+
+func readConstant[T any](reader *binaryReader, cp ConstantPool) T {
+	var index uint16
+	reader.read(&index)
+	value, err := getConstant[T](cp, index)
+	if err != nil {
+		reader.fail(err)
+	}
+	return value
 }

@@ -46,36 +46,54 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 	}
 
 	interfaces := []string{}
-	for _, i := range cf.Interfaces {
-		interfaces = append(interfaces, string(cp[i].(Class)))
+	for i, index := range cf.Interfaces {
+		name, err := getConstant[Class](cp, index)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read interface %d: %w", i, err)
+		}
+		interfaces = append(interfaces, string(name))
 	}
 
 	fields := []Field{}
-	for _, f := range cf.Fields {
-		name := string(cp[f.NameIndex].(Utf8))
+	for i, f := range cf.Fields {
+		name, err := getConstant[Utf8](cp, f.NameIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read field %d: %w", i, err)
+		}
+		descriptor, err := getConstant[Utf8](cp, f.DescriptorIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read field %s: %w", name, err)
+		}
 		attributes, err := parseAttributes(f.Attributes, cp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read field %s: %w", name, err)
 		}
 		fields = append(fields, Field{
 			Access:     findFlags(FieldT, f.AccessFlags),
-			Name:       name,
-			Type:       string(cp[f.DescriptorIndex].(Utf8)),
+			Name:       string(name),
+			Type:       string(descriptor),
 			Attributes: attributes,
 		})
 	}
 
 	methods := []Method{}
-	for _, m := range cf.Methods {
-		name := string(cp[m.NameIndex].(Utf8))
+	for i, m := range cf.Methods {
+		name, err := getConstant[Utf8](cp, m.NameIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %d: %w", i, err)
+		}
+		descriptor, err := getConstant[Utf8](cp, m.DescriptorIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
+		}
 		attributes, err := parseAttributes(m.Attributes, cp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
 		}
-		paramsTypes, returnType := readSignature(string(cp[m.DescriptorIndex].(Utf8)))
+		paramsTypes, returnType := readSignature(string(descriptor))
 		methods = append(methods, Method{
 			Access:      findFlags(MethodT, m.AccessFlags),
-			Name:        name,
+			Name:        string(name),
 			ReturnType:  returnType,
 			ParamsTypes: paramsTypes,
 			Attributes:  attributes,
@@ -87,9 +105,16 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 		return nil, err
 	}
 
-	var superClass string
+	thisClass, err := getConstant[Class](cp, cf.ThisClass)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read this class: %w", err)
+	}
+
+	var superClass Class
 	if cf.SuperClass != 0 {
-		superClass = string(cp[cf.SuperClass].(Class))
+		if superClass, err = getConstant[Class](cp, cf.SuperClass); err != nil {
+			return nil, fmt.Errorf("failed to read super class: %w", err)
+		}
 	}
 
 	return &ClassStruct{
@@ -101,8 +126,8 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 			MajorVersion: cf.MajorVersion,
 		},
 		Access:     findFlags(ClassT, cf.AccessFlags),
-		ThisClass:  string(cp[cf.ThisClass].(Class)),
-		SuperClass: superClass,
+		ThisClass:  string(thisClass),
+		SuperClass: string(superClass),
 		Interfaces: interfaces,
 		Fields:     fields,
 		Methods:    methods,
