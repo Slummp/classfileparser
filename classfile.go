@@ -1,6 +1,7 @@
 package classfileparser
 
 import (
+	"fmt"
 	"regexp"
 )
 
@@ -51,24 +52,39 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 
 	fields := []Field{}
 	for _, f := range cf.Fields {
+		name := string(cp[f.NameIndex].(Utf8))
+		attributes, err := parseAttributes(f.Attributes, cp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read field %s: %w", name, err)
+		}
 		fields = append(fields, Field{
 			Access:     findFlags(FieldT, f.AccessFlags),
-			Name:       string(cp[f.NameIndex].(Utf8)),
+			Name:       name,
 			Type:       string(cp[f.DescriptorIndex].(Utf8)),
-			Attributes: parseAttributes(f.Attributes, cp),
+			Attributes: attributes,
 		})
 	}
 
 	methods := []Method{}
 	for _, m := range cf.Methods {
+		name := string(cp[m.NameIndex].(Utf8))
+		attributes, err := parseAttributes(m.Attributes, cp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
+		}
 		paramsTypes, returnType := readSignature(string(cp[m.DescriptorIndex].(Utf8)))
 		methods = append(methods, Method{
 			Access:      findFlags(MethodT, m.AccessFlags),
-			Name:        string(cp[m.NameIndex].(Utf8)),
+			Name:        name,
 			ReturnType:  returnType,
 			ParamsTypes: paramsTypes,
-			Attributes:  parseAttributes(m.Attributes, cp),
+			Attributes:  attributes,
 		})
+	}
+
+	attributes, err := parseAttributes(cf.Attributes, cp)
+	if err != nil {
+		return nil, err
 	}
 
 	var superClass string
@@ -90,7 +106,7 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 		Interfaces: interfaces,
 		Fields:     fields,
 		Methods:    methods,
-		Attributes: parseAttributes(cf.Attributes, cp),
+		Attributes: attributes,
 	}, nil
 }
 

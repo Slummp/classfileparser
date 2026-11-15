@@ -249,29 +249,28 @@ type ModuleRequire struct {
 	VersionIndex uint16
 }
 
-func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
+func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, error) {
 	var attr []Attribute
 	for _, a := range attributes {
-		reader := bytes.NewReader(a.Info)
-		switch cp[a.AttributeNameIndex].(Utf8) {
+		reader := &binaryReader{Reader: bytes.NewReader(a.Info)}
+		name := cp[a.AttributeNameIndex].(Utf8)
+		switch name {
 		case "Code":
 			var code Code
 
-			binary.Read(reader, binary.BigEndian, &code.MaxStack)
-			binary.Read(reader, binary.BigEndian, &code.MaxLocals)
+			reader.read(&code.MaxStack)
+			reader.read(&code.MaxLocals)
 
 			var codeLength uint32
-			binary.Read(reader, binary.BigEndian, &codeLength)
+			reader.read(&codeLength)
 			start := reader.Len()
 			for {
 				if reader.Len() == start-int(codeLength) {
 					break
 				}
+				pc := start - reader.Len()
 				var opcode uint8
-				err := binary.Read(reader, binary.BigEndian, &opcode)
-				if err != nil {
-					panic(err)
-				}
+				reader.read(&opcode)
 
 				switch opcode {
 				case 0x00:
@@ -308,43 +307,43 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					code.Code = append(code.Code, Dconst1{})
 				case 0x10:
 					var instr Bipush
-					binary.Read(reader, binary.BigEndian, &instr.Byte)
+					reader.read(&instr.Byte)
 					code.Code = append(code.Code, instr)
 				case 0x11:
 					var instr Sipush
-					binary.Read(reader, binary.BigEndian, &instr.Short)
+					reader.read(&instr.Short)
 					code.Code = append(code.Code, instr)
 				case 0x12:
 					var cpIndex uint8
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Ldc(cp[uint16(cpIndex)]))
 				case 0x13:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, LdcW(cp[cpIndex]))
 				case 0x14:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Ldc2W(cp[cpIndex]))
 				case 0x15:
 					var instr Iload
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x16:
 					var instr Lload
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x17:
 					var instr Fload
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x18:
 					var instr Dload
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x19:
 					var instr Aload
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x1A:
 					code.Code = append(code.Code, Iload0{})
@@ -404,23 +403,23 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					code.Code = append(code.Code, Saload{})
 				case 0x36:
 					var instr Istore
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x37:
 					var instr Lstore
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x38:
 					var instr Fstore
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x39:
 					var instr Dstore
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x3A:
 					var instr Astore
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0x3B:
 					code.Code = append(code.Code, Istore0{})
@@ -570,8 +569,8 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					code.Code = append(code.Code, Lxor{})
 				case 0x84:
 					var instr Iinc
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
-					binary.Read(reader, binary.BigEndian, &instr.Const)
+					reader.read(&instr.LocalIndex)
+					reader.read(&instr.Const)
 					code.Code = append(code.Code, instr)
 				case 0x85:
 					code.Code = append(code.Code, I2l{})
@@ -615,99 +614,102 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					code.Code = append(code.Code, Dcmpg{})
 				case 0x99:
 					var instr Ifeq
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0x9A:
 					var instr Ifne
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0x9B:
 					var instr Iflt
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0x9C:
 					var instr Ifge
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0x9D:
 					var instr Ifgt
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0x9E:
 					var instr Ifle
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0x9F:
 					var instr IfIcmpeq
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA0:
 					var instr IfIcmpne
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA1:
 					var instr IfIcmplt
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA2:
 					var instr IfIcmpge
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA3:
 					var instr IfIcmpgt
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA4:
 					var instr IfIcmple
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA5:
 					var instr IfAcmpeq
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA6:
 					var instr IfAcmpne
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA7:
 					var instr Goto
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA8:
 					var instr Jsr
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xA9:
 					var instr Ret
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.LocalIndex)
 					code.Code = append(code.Code, instr)
 				case 0xAA:
 					skipSwitchPadding(reader, start)
 					var instr Tableswitch
-					binary.Read(reader, binary.BigEndian, &instr.Default)
-					binary.Read(reader, binary.BigEndian, &instr.Low)
-					binary.Read(reader, binary.BigEndian, &instr.High)
+					reader.read(&instr.Default)
+					reader.read(&instr.Low)
+					reader.read(&instr.High)
 					if instr.Low > instr.High {
-						panic(fmt.Errorf("invalid tableswitch: low (%d) > high (%d)", instr.Low, instr.High))
+						reader.fail(fmt.Errorf("invalid tableswitch: low (%d) > high (%d)", instr.Low, instr.High))
+						break
 					}
 					count := int64(instr.High) - int64(instr.Low) + 1
 					if count*4 > int64(reader.Len()) {
-						panic(fmt.Errorf("invalid tableswitch: %d offsets exceed the remaining code", count))
+						reader.fail(fmt.Errorf("invalid tableswitch: %d offsets exceed the remaining code", count))
+						break
 					}
 					instr.Offsets = make([]int32, count)
-					binary.Read(reader, binary.BigEndian, instr.Offsets)
+					reader.read(instr.Offsets)
 					code.Code = append(code.Code, instr)
 				case 0xAB:
 					skipSwitchPadding(reader, start)
 					var instr Lookupswitch
 					var npairs int32
-					binary.Read(reader, binary.BigEndian, &instr.Default)
-					binary.Read(reader, binary.BigEndian, &npairs)
+					reader.read(&instr.Default)
+					reader.read(&npairs)
 					if npairs < 0 || int64(npairs)*8 > int64(reader.Len()) {
-						panic(fmt.Errorf("invalid lookupswitch: bad number of pairs (%d)", npairs))
+						reader.fail(fmt.Errorf("invalid lookupswitch: bad number of pairs (%d)", npairs))
+						break
 					}
 					instr.Pairs = make([]struct{ Match, Offset int32 }, npairs)
-					binary.Read(reader, binary.BigEndian, instr.Pairs)
+					reader.read(instr.Pairs)
 					code.Code = append(code.Code, instr)
 				case 0xAC:
 					code.Code = append(code.Code, Ireturn{})
@@ -723,65 +725,65 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					code.Code = append(code.Code, Return{})
 				case 0xB2:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Getstatic{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB3:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Putstatic{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB4:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Getfield{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB5:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Putfield{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB6:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Invokevirtual{Methodref: cp[cpIndex].(Methodref)})
 				case 0xB7:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					ref, isInterface := methodTarget(cp[cpIndex])
 					code.Code = append(code.Code, Invokespecial{Methodref: ref, IsInterface: isInterface})
 				case 0xB8:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					ref, isInterface := methodTarget(cp[cpIndex])
 					code.Code = append(code.Code, Invokestatic{Methodref: ref, IsInterface: isInterface})
 				case 0xB9:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					instr := Invokeinterface{
 						InterfaceMethodref: cp[cpIndex].(InterfaceMethodref),
 					}
-					binary.Read(reader, binary.BigEndian, &instr.Count)
+					reader.read(&instr.Count)
 					var void byte
-					binary.Read(reader, binary.BigEndian, &void)
+					reader.read(&void)
 					code.Code = append(code.Code, instr)
 				case 0xBA:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					instr := Invokedynamic{
 						InvokeDynamic: cp[cpIndex].(InvokeDynamic),
 					}
 					var void byte
-					binary.Read(reader, binary.BigEndian, &void)
-					binary.Read(reader, binary.BigEndian, &void)
+					reader.read(&void)
+					reader.read(&void)
 					code.Code = append(code.Code, instr)
 				case 0xBB:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, New(cp[cpIndex].(Class)))
 				case 0xBC:
 					var instr Newarray
-					binary.Read(reader, binary.BigEndian, &instr.Type)
+					reader.read(&instr.Type)
 					code.Code = append(code.Code, instr)
 				case 0xBD:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Anewarray(cp[cpIndex].(Class)))
 				case 0xBE:
 					code.Code = append(code.Code, Arraylength{})
@@ -789,11 +791,11 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					code.Code = append(code.Code, Athrow{})
 				case 0xC0:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Checkcast(cp[cpIndex].(Class)))
 				case 0xC1:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					code.Code = append(code.Code, Instanceof(cp[cpIndex].(Class)))
 				case 0xC2:
 					code.Code = append(code.Code, Monitorenter{})
@@ -801,65 +803,76 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					code.Code = append(code.Code, Monitorexit{})
 				case 0xC4:
 					var instr Wide
-					binary.Read(reader, binary.BigEndian, &instr.OpCode)
-					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
+					reader.read(&instr.OpCode)
+					reader.read(&instr.LocalIndex)
 					if instr.OpCode == 0x84 {
-						binary.Read(reader, binary.BigEndian, &instr.Const)
+						reader.read(&instr.Const)
 					}
 					code.Code = append(code.Code, instr)
 				case 0xC5:
 					var cpIndex uint16
-					binary.Read(reader, binary.BigEndian, &cpIndex)
+					reader.read(&cpIndex)
 					instr := Multianewarray{
 						Class: string(cp[cpIndex].(Class)),
 					}
-					binary.Read(reader, binary.BigEndian, &instr.Dimension)
+					reader.read(&instr.Dimension)
 					code.Code = append(code.Code, instr)
 				case 0xC6:
 					var instr Ifnull
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xC7:
 					var instr Ifnonnull
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xC8:
 					var instr GotoW
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				case 0xC9:
 					var instr JsrW
-					binary.Read(reader, binary.BigEndian, &instr.Offset)
+					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				default:
-					panic(fmt.Errorf("unknown opcode: %0x", opcode))
+					reader.fail(fmt.Errorf("unknown opcode: 0x%X", opcode))
+				}
+
+				if reader.err != nil {
+					reader.err = fmt.Errorf("failed to read instruction at offset %d: %w", pc, reader.err)
+					break
 				}
 			}
 
 			var exceptionTableLength uint16
-			binary.Read(reader, binary.BigEndian, &exceptionTableLength)
+			reader.read(&exceptionTableLength)
 			code.ExceptionTable = make([]ExceptionTableEntry, exceptionTableLength)
 			for i := 0; i < int(exceptionTableLength); i++ {
 				exception := &ExceptionTableEntry{}
-				binary.Read(reader, binary.BigEndian, &exception.StartPc)
-				binary.Read(reader, binary.BigEndian, &exception.EndPc)
-				binary.Read(reader, binary.BigEndian, &exception.HandlerPc)
-				binary.Read(reader, binary.BigEndian, &exception.CatchType)
+				reader.read(&exception.StartPc)
+				reader.read(&exception.EndPc)
+				reader.read(&exception.HandlerPc)
+				reader.read(&exception.CatchType)
 				code.ExceptionTable[i] = *exception
 			}
 
 			var attributesCount uint16
-			binary.Read(reader, binary.BigEndian, &attributesCount)
+			reader.read(&attributesCount)
 			nestedAttributes := make([]AttributeInfo, attributesCount)
 			for i := 0; i < int(attributesCount); i++ {
 				attribute := &AttributeInfo{}
-				binary.Read(reader, binary.BigEndian, &attribute.AttributeNameIndex)
-				binary.Read(reader, binary.BigEndian, &attribute.AttributeLength)
+				reader.read(&attribute.AttributeNameIndex)
+				reader.read(&attribute.AttributeLength)
 				attribute.Info = make([]byte, attribute.AttributeLength)
-				io.ReadFull(reader, attribute.Info)
+				reader.read(attribute.Info)
 				nestedAttributes[i] = *attribute
 			}
-			code.Attributes = parseAttributes(nestedAttributes, cp)
+			if reader.err == nil {
+				nested, err := parseAttributes(nestedAttributes, cp)
+				if err != nil {
+					reader.fail(err)
+				}
+				code.Attributes = nested
+			}
 
 			attr = append(attr, code)
 		case "ConstantValue": // TODO
@@ -892,7 +905,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 			attr = append(attr, SourceDebugExtension{})
 		case "Signature":
 			var cpIndex uint16
-			binary.Read(reader, binary.BigEndian, &cpIndex)
+			reader.read(&cpIndex)
 			attr = append(attr, Signature(cp[cpIndex].(Utf8)))
 		case "StackMapTable": // TODO
 			attr = append(attr, StackMapTable{})
@@ -913,15 +926,38 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 		case "PermittedSubclasses": // TODO
 			attr = append(attr, PermittedSubclasses{})
 		}
+
+		if reader.err != nil {
+			return nil, fmt.Errorf("failed to read attribute %s: %w", name, reader.err)
+		}
 	}
 
-	return attr
+	return attr, nil
 }
 
-func skipSwitchPadding(reader *bytes.Reader, codeStart int) {
+type binaryReader struct {
+	*bytes.Reader
+	err error
+}
+
+func (r *binaryReader) read(data interface{}) {
+	if r.err == nil {
+		r.err = binary.Read(r.Reader, binary.BigEndian, data)
+	}
+}
+
+func (r *binaryReader) fail(err error) {
+	if r.err == nil {
+		r.err = err
+	}
+}
+
+func skipSwitchPadding(reader *binaryReader, codeStart int) {
 	pc := codeStart - reader.Len() // address right after the opcode
 	if padding := (4 - pc%4) % 4; padding > 0 {
-		reader.Seek(int64(padding), io.SeekCurrent)
+		if _, err := reader.Seek(int64(padding), io.SeekCurrent); err != nil {
+			reader.fail(err)
+		}
 	}
 }
 
