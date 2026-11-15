@@ -643,16 +643,14 @@ type Invokevirtual struct {
 
 // Invokespecial - invokespecial (0xB7) : Invoke instance method;  direct invocation of instance initialization methods and methods of the current class and its supertypes
 type Invokespecial struct {
-	Class string
-	Name  string
-	Type  string
+	Methodref
+	IsInterface bool // true if the target is an interface method (InterfaceMethodref)
 }
 
 // Invokestatic - invokestatic (0xB8) : Invoke a class (static) method
 type Invokestatic struct {
-	Class string
-	Name  string
-	Type  string
+	Methodref
+	IsInterface bool // true if the target is an interface method (InterfaceMethodref)
 }
 
 // Invokeinterface - invokeinterface (0xB9) : Invoke interface method // TODO

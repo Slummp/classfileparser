@@ -744,11 +744,13 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 				case 0xB7:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
-					code.Code = append(code.Code, Invokespecial(cp[cpIndex].(Methodref)))
+					ref, isInterface := methodTarget(cp[cpIndex])
+					code.Code = append(code.Code, Invokespecial{Methodref: ref, IsInterface: isInterface})
 				case 0xB8:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
-					code.Code = append(code.Code, Invokestatic(cp[cpIndex].(Methodref)))
+					ref, isInterface := methodTarget(cp[cpIndex])
+					code.Code = append(code.Code, Invokestatic{Methodref: ref, IsInterface: isInterface})
 				case 0xB9:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
@@ -921,4 +923,11 @@ func skipSwitchPadding(reader *bytes.Reader, codeStart int) {
 	if padding := (4 - pc%4) % 4; padding > 0 {
 		reader.Seek(int64(padding), io.SeekCurrent)
 	}
+}
+
+func methodTarget(entry interface{}) (Methodref, bool) {
+	if ref, ok := entry.(InterfaceMethodref); ok {
+		return Methodref(ref), true
+	}
+	return entry.(Methodref), false
 }
