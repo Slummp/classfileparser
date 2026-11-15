@@ -132,7 +132,7 @@ func resolveConstant(cpItem CpInfo, cp []CpInfo) (interface{}, error) {
 			9: "invokeInterface",
 		}[cpItem.Info[0]]
 		if !ok {
-			return nil, fmt.Errorf("invalid method handle kind: %d", cpItem.Info[0])
+			return nil, fmt.Errorf("%w: invalid method handle kind: %d", ErrMalformed, cpItem.Info[0])
 		}
 		ref, err := getEntry(cpItem.Info[1:3], cp, 9, 10, 11)
 		if err != nil {
@@ -160,18 +160,18 @@ func resolveConstant(cpItem CpInfo, cp []CpInfo) (interface{}, error) {
 		name, err := getString(cpItem.Info, cp)
 		return Package(name), err
 	default:
-		return nil, fmt.Errorf("unknown constant pool tag: %d", cpItem.Tag)
+		return nil, fmt.Errorf("%w: unknown constant pool tag: %d", ErrMalformed, cpItem.Tag)
 	}
 }
 
 func getEntry(i []byte, cp []CpInfo, tags ...uint8) (CpInfo, error) {
 	index := binary.BigEndian.Uint16(i)
 	if index == 0 || int(index) > len(cp) {
-		return CpInfo{}, fmt.Errorf("invalid constant pool index: %d", index)
+		return CpInfo{}, fmt.Errorf("%w: invalid constant pool index: %d", ErrMalformed, index)
 	}
 	entry := cp[index-1]
 	if !slices.Contains(tags, entry.Tag) {
-		return CpInfo{}, fmt.Errorf("invalid constant pool tag at index %d: %d", index, entry.Tag)
+		return CpInfo{}, fmt.Errorf("%w: invalid constant pool tag at index %d: %d", ErrMalformed, index, entry.Tag)
 	}
 	return entry, nil
 }
@@ -215,11 +215,11 @@ func getConstant[T any](cp ConstantPool, index uint16) (T, error) {
 	var value T
 	entry, ok := cp[index]
 	if !ok {
-		return value, fmt.Errorf("invalid constant pool index: %d", index)
+		return value, fmt.Errorf("%w: invalid constant pool index: %d", ErrMalformed, index)
 	}
 	value, ok = entry.(T)
 	if !ok {
-		return value, fmt.Errorf("invalid constant pool type at index %d: %T", index, entry)
+		return value, fmt.Errorf("%w: invalid constant pool type at index %d: %T", ErrMalformed, index, entry)
 	}
 	return value, nil
 }

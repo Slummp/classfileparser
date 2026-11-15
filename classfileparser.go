@@ -2,9 +2,13 @@ package classfileparser
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 )
+
+// ErrMalformed is wrapped by every error caused by an invalid class file content
+var ErrMalformed = errors.New("malformed class file")
 
 // ClassFile represents the entire structure of a .class file
 type ClassFile struct {
@@ -84,7 +88,7 @@ func Open(file io.Reader) (*ClassFile, error) {
 		return nil, fmt.Errorf("failed to read magic number: %w", err)
 	}
 	if cf.Magic != 0xCAFEBABE {
-		return nil, fmt.Errorf("invalid magic number: 0x%X", cf.Magic)
+		return nil, fmt.Errorf("%w: invalid magic number: 0x%X", ErrMalformed, cf.Magic)
 	}
 
 	// Read versions
@@ -100,7 +104,7 @@ func Open(file io.Reader) (*ClassFile, error) {
 		return nil, fmt.Errorf("failed to read constant pool count: %w", err)
 	}
 	if cf.ConstantPoolCount == 0 {
-		return nil, fmt.Errorf("invalid constant pool count: %d", cf.ConstantPoolCount)
+		return nil, fmt.Errorf("%w: invalid constant pool count: %d", ErrMalformed, cf.ConstantPoolCount)
 	}
 
 	// Read constant pool entries
@@ -226,7 +230,7 @@ func getCpInfoLength(tag uint8, file io.Reader) (int, error) {
 		return 2, nil
 
 	default:
-		return 0, fmt.Errorf("unknown constant pool tag: %d", tag)
+		return 0, fmt.Errorf("%w: unknown constant pool tag: %d", ErrMalformed, tag)
 	}
 }
 

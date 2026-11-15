@@ -142,7 +142,7 @@ func readSignature(signature string) ([]string, string, error) {
 	re := regexp.MustCompile(`\((.*?)\)(.*)`)
 	matches := re.FindStringSubmatch(signature)
 	if matches == nil {
-		return nil, "", fmt.Errorf("invalid method descriptor: %s", signature)
+		return nil, "", fmt.Errorf("%w: invalid method descriptor: %s", ErrMalformed, signature)
 	}
 	paramString, returnType := matches[1], matches[2]
 

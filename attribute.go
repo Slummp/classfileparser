@@ -687,12 +687,12 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 					reader.read(&instr.Low)
 					reader.read(&instr.High)
 					if instr.Low > instr.High {
-						reader.fail(fmt.Errorf("invalid tableswitch: low (%d) > high (%d)", instr.Low, instr.High))
+						reader.fail(fmt.Errorf("%w: invalid tableswitch: low (%d) > high (%d)", ErrMalformed, instr.Low, instr.High))
 						break
 					}
 					count := int64(instr.High) - int64(instr.Low) + 1
 					if count*4 > int64(reader.Len()) {
-						reader.fail(fmt.Errorf("invalid tableswitch: %d offsets exceed the remaining code", count))
+						reader.fail(fmt.Errorf("%w: invalid tableswitch: %d offsets exceed the remaining code", ErrMalformed, count))
 						break
 					}
 					instr.Offsets = make([]int32, count)
@@ -705,7 +705,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 					reader.read(&instr.Default)
 					reader.read(&npairs)
 					if npairs < 0 || int64(npairs)*8 > int64(reader.Len()) {
-						reader.fail(fmt.Errorf("invalid lookupswitch: bad number of pairs (%d)", npairs))
+						reader.fail(fmt.Errorf("%w: invalid lookupswitch: bad number of pairs (%d)", ErrMalformed, npairs))
 						break
 					}
 					instr.Pairs = make([]struct{ Match, Offset int32 }, npairs)
@@ -806,11 +806,11 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 					reader.read(&instr.Offset)
 					code.Code = append(code.Code, instr)
 				default:
-					reader.fail(fmt.Errorf("unknown opcode: 0x%X", opcode))
+					reader.fail(fmt.Errorf("%w: unknown opcode: 0x%X", ErrMalformed, opcode))
 				}
 
 				if start-reader.Len() > int(codeLength) {
-					reader.fail(fmt.Errorf("exceeds code length: %d", codeLength))
+					reader.fail(fmt.Errorf("%w: exceeds code length: %d", ErrMalformed, codeLength))
 				}
 				if reader.err != nil {
 					reader.err = fmt.Errorf("failed to read instruction at offset %d: %w", pc, reader.err)
@@ -838,7 +838,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 				reader.read(&attribute.AttributeNameIndex)
 				reader.read(&attribute.AttributeLength)
 				if int64(attribute.AttributeLength) > int64(reader.Len()) {
-					reader.fail(fmt.Errorf("invalid attribute length: %d", attribute.AttributeLength))
+					reader.fail(fmt.Errorf("%w: invalid attribute length: %d", ErrMalformed, attribute.AttributeLength))
 					break
 				}
 				attribute.Info = make([]byte, attribute.AttributeLength)
