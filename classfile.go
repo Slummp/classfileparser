@@ -146,7 +146,7 @@ func readSignature(signature string) ([]string, string, error) {
 	}
 	paramString, returnType := matches[1], matches[2]
 
-	re = regexp.MustCompile(`(\[?(?:L.+?;|.))`)
+	re = regexp.MustCompile(`(\[*(?:L.+?;|.))`)
 	params := re.FindAllString(paramString, -1)
 
 	return params, returnType, nil
