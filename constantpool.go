@@ -53,10 +53,11 @@ type NameAndType struct {
 
 // MethodHandle holds the decoded data of a CONSTANT_MethodHandle entry
 type MethodHandle struct {
-	Kind  string
-	Class string
-	Name  string
-	Type  string
+	Kind        string
+	Class       string
+	Name        string
+	Type        string
+	IsInterface bool // true if the target is an interface method (InterfaceMethodref)
 }
 
 // Dynamic represents a CONSTANT_Dynamic entry (bootstrap handling TODO)
@@ -110,6 +111,7 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 				Name  string
 				Type  string
 			}
+			var isInterface bool
 			switch itemTyped := item.(type) {
 			case Fieldref:
 				cnt = itemTyped
@@ -117,6 +119,7 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 				cnt = itemTyped
 			case InterfaceMethodref:
 				cnt = itemTyped
+				isInterface = true
 			}
 			cp[uint16(i+1)] = MethodHandle{
 				Kind: map[byte]string{
@@ -130,9 +133,10 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 					8: "newInvokeSpecial",
 					9: "invokeInterface",
 				}[cpItem.Info[0]],
-				Class: cnt.Class,
-				Name:  cnt.Name,
-				Type:  cnt.Type,
+				Class:       cnt.Class,
+				Name:        cnt.Name,
+				Type:        cnt.Type,
+				IsInterface: isInterface,
 			}
 		case 16:
 			cp[uint16(i+1)] = MethodType(getString(cpItem.Info, cf.ConstantPool))
