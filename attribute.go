@@ -837,6 +837,10 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 				attribute := &AttributeInfo{}
 				reader.read(&attribute.AttributeNameIndex)
 				reader.read(&attribute.AttributeLength)
+				if int64(attribute.AttributeLength) > int64(reader.Len()) {
+					reader.fail(fmt.Errorf("invalid attribute length: %d", attribute.AttributeLength))
+					break
+				}
 				attribute.Info = make([]byte, attribute.AttributeLength)
 				reader.read(attribute.Info)
 				nestedAttributes[i] = *attribute

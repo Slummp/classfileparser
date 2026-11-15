@@ -99,6 +99,9 @@ func Open(file io.Reader) (*ClassFile, error) {
 	if err := binary.Read(file, binary.BigEndian, &cf.ConstantPoolCount); err != nil {
 		return nil, fmt.Errorf("failed to read constant pool count: %w", err)
 	}
+	if cf.ConstantPoolCount == 0 {
+		return nil, fmt.Errorf("invalid constant pool count: %d", cf.ConstantPoolCount)
+	}
 
 	// Read constant pool entries
 	cf.ConstantPool = make([]CpInfo, cf.ConstantPoolCount-1)
@@ -278,9 +281,13 @@ func parseAttribute(file io.Reader, attr *AttributeInfo) error {
 	if err := binary.Read(file, binary.BigEndian, &attr.AttributeLength); err != nil {
 		return err
 	}
-	attr.Info = make([]byte, attr.AttributeLength)
-	if _, err := io.ReadFull(file, attr.Info); err != nil {
+	info, err := io.ReadAll(io.LimitReader(file, int64(attr.AttributeLength)))
+	if err != nil {
 		return err
 	}
+	if len(info) != int(attr.AttributeLength) {
+		return io.ErrUnexpectedEOF
+	}
+	attr.Info = info
 	return nil
 }
