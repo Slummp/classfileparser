@@ -16,7 +16,7 @@
 go get github.com/Slummp/classfileparser
 ```
 
-The module targets Go 1.25 or newer (as declared in `go.mod`).
+The module targets Go 1.22 or newer (as declared in `go.mod`).
 
 ## Quick start
 
