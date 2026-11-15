@@ -90,7 +90,10 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
 		}
-		paramsTypes, returnType := readSignature(string(descriptor))
+		paramsTypes, returnType, err := readSignature(string(descriptor))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
+		}
 		methods = append(methods, Method{
 			Access:      findFlags(MethodT, m.AccessFlags),
 			Name:        string(name),
@@ -135,13 +138,16 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 	}, nil
 }
 
-func readSignature(signature string) ([]string, string) {
+func readSignature(signature string) ([]string, string, error) {
 	re := regexp.MustCompile(`\((.*?)\)(.*)`)
 	matches := re.FindStringSubmatch(signature)
+	if matches == nil {
+		return nil, "", fmt.Errorf("invalid method descriptor: %s", signature)
+	}
 	paramString, returnType := matches[1], matches[2]
 
 	re = regexp.MustCompile(`(\[?(?:L.+?;|.))`)
 	params := re.FindAllString(paramString, -1)
 
-	return params, returnType
+	return params, returnType, nil
 }
