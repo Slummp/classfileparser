@@ -608,37 +608,27 @@ type Return struct{}
 
 // Getstatic - getstatic (0xB2) : Get static field from class
 type Getstatic struct {
-	Class string
-	Name  string
-	Type  string
+	Fieldref
 }
 
 // Putstatic - putstatic (0xB3) : Set static field in class
 type Putstatic struct {
-	Class string
-	Name  string
-	Type  string
+	Fieldref
 }
 
 // Getfield - getfield (0xB4) : Fetch field from object
 type Getfield struct {
-	Class string
-	Name  string
-	Type  string
+	Fieldref
 }
 
 // Putfield - putfield (0xB5) : Set field in object
 type Putfield struct {
-	Class string
-	Name  string
-	Type  string
+	Fieldref
 }
 
 // Invokevirtual - invokevirtual (0xB6) : Invoke instance method; dispatch based on class
 type Invokevirtual struct {
-	Class string
-	Name  string
-	Type  string
+	Methodref
 }
 
 // Invokespecial - invokespecial (0xB7) : Invoke instance method;  direct invocation of instance initialization methods and methods of the current class and its supertypes

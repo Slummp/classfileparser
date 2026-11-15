@@ -724,23 +724,23 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 				case 0xB2:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
-					code.Code = append(code.Code, Getstatic(cp[cpIndex].(Fieldref)))
+					code.Code = append(code.Code, Getstatic{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB3:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
-					code.Code = append(code.Code, Putstatic(cp[cpIndex].(Fieldref)))
+					code.Code = append(code.Code, Putstatic{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB4:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
-					code.Code = append(code.Code, Getfield(cp[cpIndex].(Fieldref)))
+					code.Code = append(code.Code, Getfield{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB5:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
-					code.Code = append(code.Code, Putfield(cp[cpIndex].(Fieldref)))
+					code.Code = append(code.Code, Putfield{Fieldref: cp[cpIndex].(Fieldref)})
 				case 0xB6:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
-					code.Code = append(code.Code, Invokevirtual(cp[cpIndex].(Methodref)))
+					code.Code = append(code.Code, Invokevirtual{Methodref: cp[cpIndex].(Methodref)})
 				case 0xB7:
 					var cpIndex uint16
 					binary.Read(reader, binary.BigEndian, &cpIndex)
