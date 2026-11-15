@@ -105,7 +105,7 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 			cp[uint16(i+1)] =
 				getNameType(cpItem.Info, cf.ConstantPool)
 		case 15:
-			ref := cf.ConstantPool[binary.BigEndian.Uint16(cpItem.Info[1:3])-1]
+			ref := getEntry(cpItem.Info[1:3], cf.ConstantPool)
 			cnt := getClassNameType(ref.Info, cf.ConstantPool)
 			cp[uint16(i+1)] = MethodHandle{
 				Kind: map[byte]string{
@@ -141,9 +141,12 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 	return cp, nil
 }
 
+func getEntry(i []byte, cp []CpInfo) CpInfo {
+	return cp[binary.BigEndian.Uint16(i)-1]
+}
+
 func getString(i []byte, cp []CpInfo) string {
-	index := int16(binary.BigEndian.Uint16(i))
-	return string(cp[index-1].Info)
+	return string(getEntry(i, cp).Info)
 }
 
 func getNameType(i []byte, cp []CpInfo) NameAndType {
@@ -158,14 +161,14 @@ func getClassNameType(i []byte, cp []CpInfo) struct {
 	Name  string
 	Type  string
 } {
-	indexNameAndType := cp[int16(binary.BigEndian.Uint16(i[2:4]))-1].Info
+	nameAndType := getEntry(i[2:4], cp).Info
 	return struct {
 		Class string
 		Name  string
 		Type  string
 	}{
-		Class: getString(cp[int16(binary.BigEndian.Uint16(i[0:2]))-1].Info, cp),
-		Name:  getString(indexNameAndType[0:2], cp),
-		Type:  getString(indexNameAndType[2:4], cp),
+		Class: getString(getEntry(i[0:2], cp).Info, cp),
+		Name:  getString(nameAndType[0:2], cp),
+		Type:  getString(nameAndType[2:4], cp),
 	}
 }
