@@ -264,10 +264,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 			var codeLength uint32
 			reader.read(&codeLength)
 			start := reader.Len()
-			for {
-				if reader.Len() == start-int(codeLength) {
-					break
-				}
+			for start-reader.Len() < int(codeLength) {
 				pc := start - reader.Len()
 				var opcode uint8
 				reader.read(&opcode)
@@ -837,6 +834,9 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 					reader.fail(fmt.Errorf("unknown opcode: 0x%X", opcode))
 				}
 
+				if start-reader.Len() > int(codeLength) {
+					reader.fail(fmt.Errorf("exceeds code length: %d", codeLength))
+				}
 				if reader.err != nil {
 					reader.err = fmt.Errorf("failed to read instruction at offset %d: %w", pc, reader.err)
 					break
