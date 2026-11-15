@@ -681,10 +681,34 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 					var instr Ret
 					binary.Read(reader, binary.BigEndian, &instr.LocalIndex)
 					code.Code = append(code.Code, instr)
-				// case 0xAA:
-				// 	code.Code = append(code.Code, Tableswitch{})
-				// case 0xAB:
-				// 	code.Code = append(code.Code, Lookupswitch{})
+				case 0xAA:
+					skipSwitchPadding(reader, start)
+					var instr Tableswitch
+					binary.Read(reader, binary.BigEndian, &instr.Default)
+					binary.Read(reader, binary.BigEndian, &instr.Low)
+					binary.Read(reader, binary.BigEndian, &instr.High)
+					if instr.Low > instr.High {
+						panic(fmt.Errorf("invalid tableswitch: low (%d) > high (%d)", instr.Low, instr.High))
+					}
+					count := int64(instr.High) - int64(instr.Low) + 1
+					if count*4 > int64(reader.Len()) {
+						panic(fmt.Errorf("invalid tableswitch: %d offsets exceed the remaining code", count))
+					}
+					instr.Offsets = make([]int32, count)
+					binary.Read(reader, binary.BigEndian, instr.Offsets)
+					code.Code = append(code.Code, instr)
+				case 0xAB:
+					skipSwitchPadding(reader, start)
+					var instr Lookupswitch
+					var npairs int32
+					binary.Read(reader, binary.BigEndian, &instr.Default)
+					binary.Read(reader, binary.BigEndian, &npairs)
+					if npairs < 0 || int64(npairs)*8 > int64(reader.Len()) {
+						panic(fmt.Errorf("invalid lookupswitch: bad number of pairs (%d)", npairs))
+					}
+					instr.Pairs = make([]struct{ Match, Offset int32 }, npairs)
+					binary.Read(reader, binary.BigEndian, instr.Pairs)
+					code.Code = append(code.Code, instr)
 				case 0xAC:
 					code.Code = append(code.Code, Ireturn{})
 				case 0xAD:
@@ -890,4 +914,11 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) []Attribute {
 	}
 
 	return attr
+}
+
+func skipSwitchPadding(reader *bytes.Reader, codeStart int) {
+	pc := codeStart - reader.Len() // address right after the opcode
+	if padding := (4 - pc%4) % 4; padding > 0 {
+		reader.Seek(int64(padding), io.SeekCurrent)
+	}
 }

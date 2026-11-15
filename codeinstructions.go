@@ -571,22 +571,22 @@ type Ret struct {
 	LocalIndex uint8 // local variable index
 }
 
-// // Tableswitch - tableswitch (0xAA) : Access jump table by index and jump // TODO
-// type Tableswitch struct {
-//   [0] // 0 to 3 empty bytes for padding
-//   int32 // default offset
-//   int32 // low (<= high)
-//   int32 // high (>= low)
-//   [int32] // high - low + 1 offsets
-// }
+// Tableswitch - tableswitch (0xAA) : Access jump table by index and jump
+type Tableswitch struct {
+	Default int32   // jump offset when the index is outside [Low, High]
+	Low     int32   // lowest index of the jump table
+	High    int32   // highest index of the jump table (>= Low)
+	Offsets []int32 // High - Low + 1 jump offsets
+}
 
-// // Lookupswitch - lookupswitch (0xAB) : Access jump table by key match and jump // TODO
-// type Lookupswitch struct {
-//   [0] // 0 to 3 empty bytes for padding
-//   int32 // default offset
-//   int32 // pairs length >= 0
-//   [int32 int32] // pairs (match - offset)
-// }
+// Lookupswitch - lookupswitch (0xAB) : Access jump table by key match and jump
+type Lookupswitch struct {
+	Default int32 // jump offset when no key matches
+	Pairs   []struct {
+		Match  int32 // key to compare with
+		Offset int32 // jump offset when the key matches
+	} // match/offset pairs, sorted by increasing Match
+}
 
 // Ireturn - ireturn (0xAC) : Return int from method
 type Ireturn struct{}
