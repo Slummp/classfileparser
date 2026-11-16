@@ -651,13 +651,13 @@ type Invokestatic struct {
 
 // Invokeinterface - invokeinterface (0xB9) : Invoke interface method // TODO
 type Invokeinterface struct {
-	InterfaceMethodref InterfaceMethodref
-	Count              uint8
+	InterfaceMethodref
+	Count uint8
 }
 
 // Invokedynamic - invokedynamic (0xBA) : Invoke a dynamically-computed call site // TODO
 type Invokedynamic struct {
-	InvokeDynamic InvokeDynamic
+	InvokeDynamic
 }
 
 // New - new (0xBB) : Create new object

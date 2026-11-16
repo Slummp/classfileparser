@@ -310,3 +310,26 @@ func TestUnknownOpcodes(t *testing.T) {
 		}
 	}
 }
+
+func TestInvokeEmbedsReference(t *testing.T) {
+	code, err := parseInstructions([]byte{0xB9, 0x00, 0x05, 0x01, 0x00, 0xB8, 0x00, 0x04, 0xB6, 0x00, 0x04})
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	var classes []string
+	for _, instr := range code {
+		switch i := instr.(type) {
+		case Invokeinterface:
+			classes = append(classes, i.Class+"."+i.Name)
+		case Invokestatic:
+			classes = append(classes, i.Class+"."+i.Name)
+		case Invokevirtual:
+			classes = append(classes, i.Class+"."+i.Name)
+		}
+	}
+	if want := []string{"Bar.run", "Foo.run", "Foo.run"}; !reflect.DeepEqual(classes, want) {
+		t.Fatalf("got %v, want %v", classes, want)
+	}
+	_ = Invokedynamic{}.BootstrapIndex
+}
