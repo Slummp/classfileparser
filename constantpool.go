@@ -91,50 +91,64 @@ func (cf *ClassFile) GetConstantPool() (ConstantPool, error) {
 	return cp, nil
 }
 
-func resolveConstant(cpItem CpInfo, cp []CpInfo) (interface{}, error) {
-	switch cpItem.Tag {
-	case 1:
-		return Utf8(cpItem.Info), nil
-	case 3:
-		return int32(binary.BigEndian.Uint32(cpItem.Info)), nil
-	case 4:
-		return math.Float32frombits(binary.BigEndian.Uint32(cpItem.Info)), nil
-	case 5:
-		return int64(binary.BigEndian.Uint64(cpItem.Info)), nil
-	case 6:
-		return math.Float64frombits(binary.BigEndian.Uint64(cpItem.Info)), nil
-	case 7:
-		name, err := getString(cpItem.Info, cp)
+type constantResolver func(info []byte, cp []CpInfo) (interface{}, error)
+
+var methodHandleKinds = map[byte]string{
+	1: "getField",
+	2: "getStatic",
+	3: "putField",
+	4: "putStatic",
+	5: "invokeVirtual",
+	6: "invokeStatic",
+	7: "invokeSpecial",
+	8: "newInvokeSpecial",
+	9: "invokeInterface",
+}
+
+var constantResolvers = map[uint8]constantResolver{
+	1: func(info []byte, _ []CpInfo) (interface{}, error) {
+		return Utf8(info), nil
+	},
+	3: func(info []byte, _ []CpInfo) (interface{}, error) {
+		return int32(binary.BigEndian.Uint32(info)), nil
+	},
+	4: func(info []byte, _ []CpInfo) (interface{}, error) {
+		return math.Float32frombits(binary.BigEndian.Uint32(info)), nil
+	},
+	5: func(info []byte, _ []CpInfo) (interface{}, error) {
+		return int64(binary.BigEndian.Uint64(info)), nil
+	},
+	6: func(info []byte, _ []CpInfo) (interface{}, error) {
+		return math.Float64frombits(binary.BigEndian.Uint64(info)), nil
+	},
+	7: func(info []byte, cp []CpInfo) (interface{}, error) {
+		name, err := getString(info, cp)
 		return Class(name), err
-	case 8:
-		return getString(cpItem.Info, cp)
-	case 9:
-		ref, err := getClassNameType(cpItem.Info, cp)
+	},
+	8: func(info []byte, cp []CpInfo) (interface{}, error) {
+		return getString(info, cp)
+	},
+	9: func(info []byte, cp []CpInfo) (interface{}, error) {
+		ref, err := getClassNameType(info, cp)
 		return Fieldref(ref), err
-	case 10:
-		ref, err := getClassNameType(cpItem.Info, cp)
+	},
+	10: func(info []byte, cp []CpInfo) (interface{}, error) {
+		ref, err := getClassNameType(info, cp)
 		return Methodref(ref), err
-	case 11:
-		ref, err := getClassNameType(cpItem.Info, cp)
+	},
+	11: func(info []byte, cp []CpInfo) (interface{}, error) {
+		ref, err := getClassNameType(info, cp)
 		return InterfaceMethodref(ref), err
-	case 12:
-		return getNameType(cpItem.Info, cp)
-	case 15:
-		kind, ok := map[byte]string{
-			1: "getField",
-			2: "getStatic",
-			3: "putField",
-			4: "putStatic",
-			5: "invokeVirtual",
-			6: "invokeStatic",
-			7: "invokeSpecial",
-			8: "newInvokeSpecial",
-			9: "invokeInterface",
-		}[cpItem.Info[0]]
+	},
+	12: func(info []byte, cp []CpInfo) (interface{}, error) {
+		return getNameType(info, cp)
+	},
+	15: func(info []byte, cp []CpInfo) (interface{}, error) {
+		kind, ok := methodHandleKinds[info[0]]
 		if !ok {
-			return nil, fmt.Errorf("%w: invalid method handle kind: %d", ErrMalformed, cpItem.Info[0])
+			return nil, fmt.Errorf("%w: invalid method handle kind: %d", ErrMalformed, info[0])
 		}
-		ref, err := getEntry(cpItem.Info[1:3], cp, 9, 10, 11)
+		ref, err := getEntry(info[1:3], cp, 9, 10, 11)
 		if err != nil {
 			return nil, err
 		}
@@ -146,22 +160,33 @@ func resolveConstant(cpItem CpInfo, cp []CpInfo) (interface{}, error) {
 			Type:        cnt.Type,
 			IsInterface: ref.Tag == 11,
 		}, err
-	case 16:
-		descriptor, err := getString(cpItem.Info, cp)
+	},
+	16: func(info []byte, cp []CpInfo) (interface{}, error) {
+		descriptor, err := getString(info, cp)
 		return MethodType(descriptor), err
-	case 17:
+	},
+	17: func([]byte, []CpInfo) (interface{}, error) {
 		return Dynamic{}, nil // TODO
-	case 18:
+	},
+	18: func([]byte, []CpInfo) (interface{}, error) {
 		return InvokeDynamic{}, nil // TODO
-	case 19:
-		name, err := getString(cpItem.Info, cp)
+	},
+	19: func(info []byte, cp []CpInfo) (interface{}, error) {
+		name, err := getString(info, cp)
 		return Module(name), err
-	case 20:
-		name, err := getString(cpItem.Info, cp)
+	},
+	20: func(info []byte, cp []CpInfo) (interface{}, error) {
+		name, err := getString(info, cp)
 		return Package(name), err
-	default:
+	},
+}
+
+func resolveConstant(cpItem CpInfo, cp []CpInfo) (interface{}, error) {
+	resolve, ok := constantResolvers[cpItem.Tag]
+	if !ok {
 		return nil, fmt.Errorf("%w: unknown constant pool tag: %d", ErrMalformed, cpItem.Tag)
 	}
+	return resolve(cpItem.Info, cp)
 }
 
 func getEntry(i []byte, cp []CpInfo, tags ...uint8) (CpInfo, error) {
