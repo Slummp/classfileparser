@@ -415,3 +415,50 @@ func TestInvalidSwitches(t *testing.T) {
 		})
 	}
 }
+
+func TestOpcodesEndOfData(t *testing.T) {
+	prefix := "failed to read attribute Code: failed to read instruction at offset 0: "
+	for _, c := range opcodeCases() {
+		if len(c.bytecode) == 1 || c.bytecode[0] == 0xAA || c.bytecode[0] == 0xAB {
+			continue
+		}
+		for cut := 1; cut < len(c.bytecode); cut++ {
+			info := cat(u2(1), u2(1), u4(uint32(len(c.bytecode))), c.bytecode[:cut])
+			_, err := parseAttributes([]AttributeInfo{{AttributeNameIndex: 1, Info: info}}, opcodeConstantPool())
+			if !isTruncation(err) || errors.Is(err, ErrMalformed) || !strings.HasPrefix(err.Error(), prefix) {
+				t.Errorf("0x%02X cut at %d: got %v, want a truncation error", c.bytecode[0], cut, err)
+			}
+		}
+	}
+}
+
+func TestSwitchEndOfData(t *testing.T) {
+	prefix := "failed to read attribute Code: failed to read instruction at offset 0: "
+	tableswitch := switchBytecode(0, 0xAA, 1, 0, 0, 2)
+	lookupswitch := switchBytecode(0, 0xAB, 1, 1, 5, 2)
+
+	cases := map[string]struct {
+		bytecode []byte
+		cut      int
+		message  string
+	}{
+		"tableswitch in padding":    {tableswitch, 1, "EOF"},
+		"tableswitch in default":    {tableswitch, 6, "unexpected EOF"},
+		"tableswitch before table":  {tableswitch, 16, "malformed class file: invalid tableswitch: 1 offsets exceed the remaining code"},
+		"tableswitch in table":      {tableswitch, 18, "malformed class file: invalid tableswitch: 1 offsets exceed the remaining code"},
+		"lookupswitch in padding":   {lookupswitch, 1, "EOF"},
+		"lookupswitch in default":   {lookupswitch, 6, "unexpected EOF"},
+		"lookupswitch before pairs": {lookupswitch, 12, "malformed class file: invalid lookupswitch: bad number of pairs (1)"},
+		"lookupswitch in pairs":     {lookupswitch, 18, "malformed class file: invalid lookupswitch: bad number of pairs (1)"},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			info := cat(u2(1), u2(1), u4(uint32(len(c.bytecode))), c.bytecode[:c.cut])
+			_, err := parseAttributes([]AttributeInfo{{AttributeNameIndex: 1, Info: info}}, opcodeConstantPool())
+			if err == nil || err.Error() != prefix+c.message || errors.Is(err, ErrMalformed) == isTruncation(err) {
+				t.Fatalf("got %v, want %s", err, prefix+c.message)
+			}
+		})
+	}
+}
