@@ -82,29 +82,41 @@ type ExceptionInfo struct {
 // Open creates a ClassFile by parsing the content of the provided file
 func Open(file io.Reader) (*ClassFile, error) {
 	cf := &ClassFile{}
+	steps := []func(io.Reader) error{cf.readHeader, cf.readConstantPool, cf.readClassInfo, cf.readMembers, cf.readAttributes}
+	for _, step := range steps {
+		if err := step(file); err != nil {
+			return nil, err
+		}
+	}
+	return cf, nil
+}
 
+func (cf *ClassFile) readHeader(file io.Reader) error {
 	// Read and validate the magic number
 	if err := binary.Read(file, binary.BigEndian, &cf.Magic); err != nil {
-		return nil, fmt.Errorf("failed to read magic number: %w", err)
+		return fmt.Errorf("failed to read magic number: %w", err)
 	}
 	if cf.Magic != 0xCAFEBABE {
-		return nil, fmt.Errorf("%w: invalid magic number: 0x%X", ErrMalformed, cf.Magic)
+		return fmt.Errorf("%w: invalid magic number: 0x%X", ErrMalformed, cf.Magic)
 	}
 
 	// Read versions
 	if err := binary.Read(file, binary.BigEndian, &cf.MinorVersion); err != nil {
-		return nil, fmt.Errorf("failed to read minor version: %w", err)
+		return fmt.Errorf("failed to read minor version: %w", err)
 	}
 	if err := binary.Read(file, binary.BigEndian, &cf.MajorVersion); err != nil {
-		return nil, fmt.Errorf("failed to read major version: %w", err)
+		return fmt.Errorf("failed to read major version: %w", err)
 	}
+	return nil
+}
 
+func (cf *ClassFile) readConstantPool(file io.Reader) error {
 	// Read constant pool count
 	if err := binary.Read(file, binary.BigEndian, &cf.ConstantPoolCount); err != nil {
-		return nil, fmt.Errorf("failed to read constant pool count: %w", err)
+		return fmt.Errorf("failed to read constant pool count: %w", err)
 	}
 	if cf.ConstantPoolCount == 0 {
-		return nil, fmt.Errorf("%w: invalid constant pool count: %d", ErrMalformed, cf.ConstantPoolCount)
+		return fmt.Errorf("%w: invalid constant pool count: %d", ErrMalformed, cf.ConstantPoolCount)
 	}
 
 	// Read constant pool entries
@@ -116,79 +128,87 @@ func Open(file io.Reader) (*ClassFile, error) {
 		}
 		var tag uint8
 		if err := binary.Read(file, binary.BigEndian, &tag); err != nil {
-			return nil, fmt.Errorf("failed to read constant pool tag: %w", err)
+			return fmt.Errorf("failed to read constant pool tag: %w", err)
 		}
 		cf.ConstantPool[i].Tag = tag
 
 		// Read the data for the constant pool entry based on the tag
 		infoLength, err := getCpInfoLength(tag, file)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read constant pool length: %w", err)
+			return fmt.Errorf("failed to read constant pool length: %w", err)
 		}
 		cf.ConstantPool[i].Info = make([]byte, infoLength)
 		if _, err := io.ReadFull(file, cf.ConstantPool[i].Info); err != nil {
-			return nil, fmt.Errorf("failed to read constant pool info: %w", err)
+			return fmt.Errorf("failed to read constant pool info: %w", err)
 		}
 		if tag == 5 || tag == 6 {
 			i++
 		}
 		i++
 	}
+	return nil
+}
 
+func (cf *ClassFile) readClassInfo(file io.Reader) error {
 	// Read access flags
 	if err := binary.Read(file, binary.BigEndian, &cf.AccessFlags); err != nil {
-		return nil, fmt.Errorf("failed to read access flags: %w", err)
+		return fmt.Errorf("failed to read access flags: %w", err)
 	}
 
 	// Read this class, super class, and interfaces
 	if err := binary.Read(file, binary.BigEndian, &cf.ThisClass); err != nil {
-		return nil, fmt.Errorf("failed to read this class index: %w", err)
+		return fmt.Errorf("failed to read this class index: %w", err)
 	}
 	if err := binary.Read(file, binary.BigEndian, &cf.SuperClass); err != nil {
-		return nil, fmt.Errorf("failed to read super class index: %w", err)
+		return fmt.Errorf("failed to read super class index: %w", err)
 	}
 	if err := binary.Read(file, binary.BigEndian, &cf.InterfacesCount); err != nil {
-		return nil, fmt.Errorf("failed to read interfaces count: %w", err)
+		return fmt.Errorf("failed to read interfaces count: %w", err)
 	}
 	cf.Interfaces = make([]uint16, cf.InterfacesCount)
 	if err := binary.Read(file, binary.BigEndian, &cf.Interfaces); err != nil {
-		return nil, fmt.Errorf("failed to read interfaces: %w", err)
+		return fmt.Errorf("failed to read interfaces: %w", err)
 	}
+	return nil
+}
 
+func (cf *ClassFile) readMembers(file io.Reader) error {
 	// Read fields
 	if err := binary.Read(file, binary.BigEndian, &cf.FieldsCount); err != nil {
-		return nil, fmt.Errorf("failed to read fields count: %w", err)
+		return fmt.Errorf("failed to read fields count: %w", err)
 	}
 	cf.Fields = make([]FieldInfo, cf.FieldsCount)
 	for i := range cf.Fields {
 		if err := parseField(file, &cf.Fields[i]); err != nil {
-			return nil, fmt.Errorf("failed to read field %d: %w", i, err)
+			return fmt.Errorf("failed to read field %d: %w", i, err)
 		}
 	}
 
 	// Read methods
 	if err := binary.Read(file, binary.BigEndian, &cf.MethodsCount); err != nil {
-		return nil, fmt.Errorf("failed to read methods count: %w", err)
+		return fmt.Errorf("failed to read methods count: %w", err)
 	}
 	cf.Methods = make([]MethodInfo, cf.MethodsCount)
 	for i := range cf.Methods {
 		if err := parseMethod(file, &cf.Methods[i]); err != nil {
-			return nil, fmt.Errorf("failed to read method %d: %w", i, err)
+			return fmt.Errorf("failed to read method %d: %w", i, err)
 		}
 	}
+	return nil
+}
 
+func (cf *ClassFile) readAttributes(file io.Reader) error {
 	// Read attributes
 	if err := binary.Read(file, binary.BigEndian, &cf.AttributesCount); err != nil {
-		return nil, fmt.Errorf("failed to read attributes count: %w", err)
+		return fmt.Errorf("failed to read attributes count: %w", err)
 	}
 	cf.Attributes = make([]AttributeInfo, cf.AttributesCount)
 	for i := range cf.Attributes {
 		if err := parseAttribute(file, &cf.Attributes[i]); err != nil {
-			return nil, fmt.Errorf("failed to read attribute %d: %w", i, err)
+			return fmt.Errorf("failed to read attribute %d: %w", i, err)
 		}
 	}
-
-	return cf, nil
+	return nil
 }
 
 // Helper functions for parsing
