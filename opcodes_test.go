@@ -176,7 +176,7 @@ func opcodeCases() []struct {
 		{[]byte{0xBF}, Athrow{}},
 		{[]byte{0xC2}, Monitorenter{}},
 		{[]byte{0xC3}, Monitorexit{}},
-		{[]byte{0x10, 0xFF}, Bipush{Byte: 0xFF}},
+		{[]byte{0x10, 0xFF}, Bipush{Byte: -1}},
 		{[]byte{0x11, 0xFF, 0xFE}, Sipush{Short: -2}},
 		{[]byte{0x12, 0x07}, Ldc{Value: int32(42)}},
 		{[]byte{0x13, 0x00, 0x07}, LdcW{Value: int32(42)}},

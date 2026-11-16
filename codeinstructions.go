@@ -50,7 +50,7 @@ type Dconst1 struct{}
 
 // Bipush - bipush (0x10) : Push byte
 type Bipush struct {
-	Byte byte
+	Byte int8
 }
 
 // Sipush - sipush (0x11) : Push short
