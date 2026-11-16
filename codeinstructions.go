@@ -1,5 +1,7 @@
 package classfileparser
 
+import "fmt"
+
 // Nop - nop (0x00) : Do nothing
 type Nop struct{}
 
@@ -720,4 +722,351 @@ type GotoW struct {
 // JsrW - jsr_w (0xC9) : Jump subroutine (wide index)
 type JsrW struct {
 	Offset int32 // jump offset (branch)
+}
+
+type instructionDecoder func(reader *binaryReader, cp ConstantPool, codeStart int) interface{}
+
+var instructionDecoders = [256]instructionDecoder{
+	0x00: simple(Nop{}),
+	0x01: simple(AconstNull{}),
+	0x02: simple(IconstM1{}),
+	0x03: simple(Iconst0{}),
+	0x04: simple(Iconst1{}),
+	0x05: simple(Iconst2{}),
+	0x06: simple(Iconst3{}),
+	0x07: simple(Iconst4{}),
+	0x08: simple(Iconst5{}),
+	0x09: simple(Lconst0{}),
+	0x0A: simple(Lconst1{}),
+	0x0B: simple(Fconst0{}),
+	0x0C: simple(Fconst1{}),
+	0x0D: simple(Fconst2{}),
+	0x0E: simple(Dconst0{}),
+	0x0F: simple(Dconst1{}),
+	0x10: func(reader *binaryReader, _ ConstantPool, _ int) interface{} {
+		var instr Bipush
+		reader.read(&instr.Byte)
+		return instr
+	},
+	0x11: func(reader *binaryReader, _ ConstantPool, _ int) interface{} {
+		var instr Sipush
+		reader.read(&instr.Short)
+		return instr
+	},
+	0x12: func(reader *binaryReader, cp ConstantPool, _ int) interface{} {
+		var cpIndex uint8
+		reader.read(&cpIndex)
+		value, err := getConstant[interface{}](cp, uint16(cpIndex))
+		if err != nil {
+			reader.fail(err)
+		}
+		return Ldc{Value: value}
+	},
+	0x13: constant[LdcW],
+	0x14: constant[Ldc2W],
+	0x15: local[Iload],
+	0x16: local[Lload],
+	0x17: local[Fload],
+	0x18: local[Dload],
+	0x19: local[Aload],
+	0x1A: simple(Iload0{}),
+	0x1B: simple(Iload1{}),
+	0x1C: simple(Iload2{}),
+	0x1D: simple(Iload3{}),
+	0x1E: simple(Lload0{}),
+	0x1F: simple(Lload1{}),
+	0x20: simple(Lload2{}),
+	0x21: simple(Lload3{}),
+	0x22: simple(Fload0{}),
+	0x23: simple(Fload1{}),
+	0x24: simple(Fload2{}),
+	0x25: simple(Fload3{}),
+	0x26: simple(Dload0{}),
+	0x27: simple(Dload1{}),
+	0x28: simple(Dload2{}),
+	0x29: simple(Dload3{}),
+	0x2A: simple(Aload0{}),
+	0x2B: simple(Aload1{}),
+	0x2C: simple(Aload2{}),
+	0x2D: simple(Aload3{}),
+	0x2E: simple(Iaload{}),
+	0x2F: simple(Laload{}),
+	0x30: simple(Faload{}),
+	0x31: simple(Daload{}),
+	0x32: simple(Aaload{}),
+	0x33: simple(Baload{}),
+	0x34: simple(Caload{}),
+	0x35: simple(Saload{}),
+	0x36: local[Istore],
+	0x37: local[Lstore],
+	0x38: local[Fstore],
+	0x39: local[Dstore],
+	0x3A: local[Astore],
+	0x3B: simple(Istore0{}),
+	0x3C: simple(Istore1{}),
+	0x3D: simple(Istore2{}),
+	0x3E: simple(Istore3{}),
+	0x3F: simple(Lstore0{}),
+	0x40: simple(Lstore1{}),
+	0x41: simple(Lstore2{}),
+	0x42: simple(Lstore3{}),
+	0x43: simple(Fstore0{}),
+	0x44: simple(Fstore1{}),
+	0x45: simple(Fstore2{}),
+	0x46: simple(Fstore3{}),
+	0x47: simple(Dstore0{}),
+	0x48: simple(Dstore1{}),
+	0x49: simple(Dstore2{}),
+	0x4A: simple(Dstore3{}),
+	0x4B: simple(Astore0{}),
+	0x4C: simple(Astore1{}),
+	0x4D: simple(Astore2{}),
+	0x4E: simple(Astore3{}),
+	0x4F: simple(Iastore{}),
+	0x50: simple(Lastore{}),
+	0x51: simple(Fastore{}),
+	0x52: simple(Dastore{}),
+	0x53: simple(Aastore{}),
+	0x54: simple(Bastore{}),
+	0x55: simple(Castore{}),
+	0x56: simple(Sastore{}),
+	0x57: simple(Pop{}),
+	0x58: simple(Pop2{}),
+	0x59: simple(Dup{}),
+	0x5A: simple(DupX1{}),
+	0x5B: simple(DupX2{}),
+	0x5C: simple(Dup2{}),
+	0x5D: simple(Dup2X1{}),
+	0x5E: simple(Dup2X2{}),
+	0x5F: simple(Swap{}),
+	0x60: simple(Iadd{}),
+	0x61: simple(Ladd{}),
+	0x62: simple(Fadd{}),
+	0x63: simple(Dadd{}),
+	0x64: simple(Isub{}),
+	0x65: simple(Lsub{}),
+	0x66: simple(Fsub{}),
+	0x67: simple(Dsub{}),
+	0x68: simple(Imul{}),
+	0x69: simple(Lmul{}),
+	0x6A: simple(Fmul{}),
+	0x6B: simple(Dmul{}),
+	0x6C: simple(Idiv{}),
+	0x6D: simple(Ldiv{}),
+	0x6E: simple(Fdiv{}),
+	0x6F: simple(Ddiv{}),
+	0x70: simple(Irem{}),
+	0x71: simple(Lrem{}),
+	0x72: simple(Frem{}),
+	0x73: simple(Drem{}),
+	0x74: simple(Ineg{}),
+	0x75: simple(Lneg{}),
+	0x76: simple(Fneg{}),
+	0x77: simple(Dneg{}),
+	0x78: simple(Ishl{}),
+	0x79: simple(Lshl{}),
+	0x7A: simple(Ishr{}),
+	0x7B: simple(Lshr{}),
+	0x7C: simple(Iushr{}),
+	0x7D: simple(Lushr{}),
+	0x7E: simple(Iand{}),
+	0x7F: simple(Land{}),
+	0x80: simple(Ior{}),
+	0x81: simple(Lor{}),
+	0x82: simple(Ixor{}),
+	0x83: simple(Lxor{}),
+	0x84: func(reader *binaryReader, _ ConstantPool, _ int) interface{} {
+		var instr Iinc
+		reader.read(&instr.LocalIndex)
+		reader.read(&instr.Const)
+		return instr
+	},
+	0x85: simple(I2l{}),
+	0x86: simple(I2f{}),
+	0x87: simple(I2d{}),
+	0x88: simple(L2i{}),
+	0x89: simple(L2f{}),
+	0x8A: simple(L2d{}),
+	0x8B: simple(F2i{}),
+	0x8C: simple(F2l{}),
+	0x8D: simple(F2d{}),
+	0x8E: simple(D2i{}),
+	0x8F: simple(D2l{}),
+	0x90: simple(D2f{}),
+	0x91: simple(I2b{}),
+	0x92: simple(I2c{}),
+	0x93: simple(I2s{}),
+	0x94: simple(Lcmp{}),
+	0x95: simple(Fcmpl{}),
+	0x96: simple(Fcmpg{}),
+	0x97: simple(Dcmpl{}),
+	0x98: simple(Dcmpg{}),
+	0x99: branch[Ifeq],
+	0x9A: branch[Ifne],
+	0x9B: branch[Iflt],
+	0x9C: branch[Ifge],
+	0x9D: branch[Ifgt],
+	0x9E: branch[Ifle],
+	0x9F: branch[IfIcmpeq],
+	0xA0: branch[IfIcmpne],
+	0xA1: branch[IfIcmplt],
+	0xA2: branch[IfIcmpge],
+	0xA3: branch[IfIcmpgt],
+	0xA4: branch[IfIcmple],
+	0xA5: branch[IfAcmpeq],
+	0xA6: branch[IfAcmpne],
+	0xA7: branch[Goto],
+	0xA8: branch[Jsr],
+	0xA9: local[Ret],
+	0xAA: func(reader *binaryReader, _ ConstantPool, codeStart int) interface{} {
+		skipSwitchPadding(reader, codeStart)
+		var instr Tableswitch
+		reader.read(&instr.Default)
+		reader.read(&instr.Low)
+		reader.read(&instr.High)
+		if instr.Low > instr.High {
+			reader.fail(fmt.Errorf("%w: invalid tableswitch: low (%d) > high (%d)", ErrMalformed, instr.Low, instr.High))
+			return nil
+		}
+		count := int64(instr.High) - int64(instr.Low) + 1
+		if count*4 > int64(reader.Len()) {
+			reader.fail(fmt.Errorf("%w: invalid tableswitch: %d offsets exceed the remaining code", ErrMalformed, count))
+			return nil
+		}
+		instr.Offsets = make([]int32, count)
+		reader.read(instr.Offsets)
+		return instr
+	},
+	0xAB: func(reader *binaryReader, _ ConstantPool, codeStart int) interface{} {
+		skipSwitchPadding(reader, codeStart)
+		var instr Lookupswitch
+		var npairs int32
+		reader.read(&instr.Default)
+		reader.read(&npairs)
+		if npairs < 0 || int64(npairs)*8 > int64(reader.Len()) {
+			reader.fail(fmt.Errorf("%w: invalid lookupswitch: bad number of pairs (%d)", ErrMalformed, npairs))
+			return nil
+		}
+		instr.Pairs = make([]struct{ Match, Offset int32 }, npairs)
+		reader.read(instr.Pairs)
+		return instr
+	},
+	0xAC: simple(Ireturn{}),
+	0xAD: simple(Lreturn{}),
+	0xAE: simple(Freturn{}),
+	0xAF: simple(Dreturn{}),
+	0xB0: simple(Areturn{}),
+	0xB1: simple(Return{}),
+	0xB2: field[Getstatic],
+	0xB3: field[Putstatic],
+	0xB4: field[Getfield],
+	0xB5: field[Putfield],
+	0xB6: func(reader *binaryReader, cp ConstantPool, _ int) interface{} {
+		return Invokevirtual{Methodref: readConstant[Methodref](reader, cp)}
+	},
+	0xB7: invoke[Invokespecial],
+	0xB8: invoke[Invokestatic],
+	0xB9: func(reader *binaryReader, cp ConstantPool, _ int) interface{} {
+		instr := Invokeinterface{InterfaceMethodref: readConstant[InterfaceMethodref](reader, cp)}
+		reader.read(&instr.Count)
+		var void byte
+		reader.read(&void)
+		return instr
+	},
+	0xBA: func(reader *binaryReader, cp ConstantPool, _ int) interface{} {
+		instr := Invokedynamic{InvokeDynamic: readConstant[InvokeDynamic](reader, cp)}
+		var void byte
+		reader.read(&void)
+		reader.read(&void)
+		return instr
+	},
+	0xBB: class[New],
+	0xBC: func(reader *binaryReader, _ ConstantPool, _ int) interface{} {
+		var instr Newarray
+		reader.read(&instr.Type)
+		return instr
+	},
+	0xBD: class[Anewarray],
+	0xBE: simple(Arraylength{}),
+	0xBF: simple(Athrow{}),
+	0xC0: class[Checkcast],
+	0xC1: class[Instanceof],
+	0xC2: simple(Monitorenter{}),
+	0xC3: simple(Monitorexit{}),
+	0xC4: func(reader *binaryReader, _ ConstantPool, _ int) interface{} {
+		var instr Wide
+		reader.read(&instr.OpCode)
+		reader.read(&instr.LocalIndex)
+		if instr.OpCode == 0x84 {
+			reader.read(&instr.Const)
+		}
+		return instr
+	},
+	0xC5: func(reader *binaryReader, cp ConstantPool, _ int) interface{} {
+		instr := Multianewarray{Class: string(readConstant[Class](reader, cp))}
+		reader.read(&instr.Dimension)
+		return instr
+	},
+	0xC6: branch[Ifnull],
+	0xC7: branch[Ifnonnull],
+	0xC8: wideBranch[GotoW],
+	0xC9: wideBranch[JsrW],
+}
+
+func decodeInstruction(reader *binaryReader, cp ConstantPool, codeStart int) interface{} {
+	var opcode uint8
+	reader.read(&opcode)
+	decode := instructionDecoders[opcode]
+	if decode == nil {
+		reader.fail(fmt.Errorf("%w: unknown opcode: 0x%X", ErrMalformed, opcode))
+		return nil
+	}
+	return decode(reader, cp, codeStart)
+}
+
+func simple(instr interface{}) instructionDecoder {
+	return func(*binaryReader, ConstantPool, int) interface{} {
+		return instr
+	}
+}
+
+func local[T ~struct{ LocalIndex uint8 }](reader *binaryReader, _ ConstantPool, _ int) interface{} {
+	var instr struct{ LocalIndex uint8 }
+	reader.read(&instr.LocalIndex)
+	return T(instr)
+}
+
+func branch[T ~struct{ Offset int16 }](reader *binaryReader, _ ConstantPool, _ int) interface{} {
+	var instr struct{ Offset int16 }
+	reader.read(&instr.Offset)
+	return T(instr)
+}
+
+func wideBranch[T ~struct{ Offset int32 }](reader *binaryReader, _ ConstantPool, _ int) interface{} {
+	var instr struct{ Offset int32 }
+	reader.read(&instr.Offset)
+	return T(instr)
+}
+
+func field[T ~struct{ Fieldref }](reader *binaryReader, cp ConstantPool, _ int) interface{} {
+	return T(struct{ Fieldref }{readConstant[Fieldref](reader, cp)})
+}
+
+func invoke[T ~struct {
+	Methodref
+	IsInterface bool
+}](reader *binaryReader, cp ConstantPool, _ int) interface{} {
+	ref, isInterface := readMethodTarget(reader, cp)
+	return T(struct {
+		Methodref
+		IsInterface bool
+	}{ref, isInterface})
+}
+
+func class[T ~string](reader *binaryReader, cp ConstantPool, _ int) interface{} {
+	return T(readConstant[Class](reader, cp))
+}
+
+func constant[T ~struct{ Value interface{} }](reader *binaryReader, cp ConstantPool, _ int) interface{} {
+	return T(struct{ Value interface{} }{readConstant[interface{}](reader, cp)})
 }
