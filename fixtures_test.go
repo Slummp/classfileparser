@@ -242,7 +242,7 @@ func TestFixtureManyConstants(t *testing.T) {
 }
 
 func TestFixtureInvocations(t *testing.T) {
-	cs := fixture(t, "testcases/Invocations")
+	cf, cs := openFixture(t, "testcases/Invocations")
 
 	toString := Methodref{Class: "java/lang/Object", Name: "toString", Type: "()Ljava/lang/String;"}
 	total := Fieldref{Class: "testcases/Invocations", Name: "total", Type: "I"}
@@ -287,6 +287,32 @@ func TestFixtureInvocations(t *testing.T) {
 	})
 	if !hasAttribute[BootstrapMethods](cs.Attributes) {
 		t.Errorf("missing BootstrapMethods attribute")
+	}
+
+	cp, err := cf.GetConstantPool()
+	if err != nil {
+		t.Fatalf("GetConstantPool failed: %v", err)
+	}
+	lambdaConstants := map[interface{}]bool{}
+	for _, value := range cp {
+		switch value.(type) {
+		case MethodHandle, MethodType:
+			lambdaConstants[value] = true
+		}
+	}
+	want := map[interface{}]bool{
+		MethodType("()Ljava/lang/Object;"): true,
+		MethodType("()Ljava/lang/String;"): true,
+		MethodHandle{Kind: "invokeStatic", Class: "testcases/Invocations", Name: "lambda$lambda$0", Type: "()Ljava/lang/String;"}: true,
+		MethodHandle{
+			Kind:  "invokeStatic",
+			Class: "java/lang/invoke/LambdaMetafactory",
+			Name:  "metafactory",
+			Type:  "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+		}: true,
+	}
+	if !reflect.DeepEqual(lambdaConstants, want) {
+		t.Errorf("got method handles and types %#v\nwant %#v", lambdaConstants, want)
 	}
 }
 
