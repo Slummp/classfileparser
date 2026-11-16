@@ -63,6 +63,7 @@ func TestParseAttributesNames(t *testing.T) {
 		"NestHost":                             NestHost{},
 		"NestMembers":                          NestMembers{},
 		"PermittedSubclasses":                  PermittedSubclasses{},
+		"Record":                               Record{},
 	}
 
 	for name, want := range cases {

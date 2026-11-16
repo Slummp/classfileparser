@@ -566,6 +566,9 @@ func TestFixtureRecord(t *testing.T) {
 	if want := []string{"ACC_PUBLIC", "ACC_FINAL", "ACC_SUPER"}; !reflect.DeepEqual(cs.Access, want) || cs.SuperClass != "java/lang/Record" {
 		t.Fatalf("got %v extends %s", cs.Access, cs.SuperClass)
 	}
+	if !hasAttribute[Record](cs.Attributes) {
+		t.Errorf("missing Record attribute")
+	}
 	for name, typ := range map[string]string{"x": "I", "y": "Ljava/lang/String;"} {
 		if f := findField(t, cs, name); !reflect.DeepEqual(f.Access, []string{"ACC_PRIVATE", "ACC_FINAL"}) || f.Type != typ {
 			t.Errorf("field %s: got %v %s", name, f.Access, f.Type)

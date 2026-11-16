@@ -151,6 +151,9 @@ type PermittedSubclasses struct {
 	SubclassIndex      []uint16
 }
 
+// Record describes the components of a record class (decoding TODO).
+type Record struct{}
+
 // ExceptionTableEntry describes the additional entries needed for attributes.
 type ExceptionTableEntry struct {
 	StartPc   uint16
@@ -902,6 +905,8 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 			attr = append(attr, NestMembers{})
 		case "PermittedSubclasses": // TODO
 			attr = append(attr, PermittedSubclasses{})
+		case "Record": // TODO
+			attr = append(attr, Record{})
 		}
 
 		if reader.err != nil {
