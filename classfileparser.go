@@ -223,7 +223,7 @@ func getCpInfoLength(tag uint8, file io.Reader) (int, error) {
 	case 16: // CONSTANT_MethodType
 		return 2, nil
 
-	case 18: // CONSTANT_InvokeDynamic
+	case 17, 18: // CONSTANT_Dynamic, CONSTANT_InvokeDynamic
 		return 4, nil
 
 	case 19, 20: // CONSTANT_Module, CONSTANT_Package (Java 9+)
