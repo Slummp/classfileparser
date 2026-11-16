@@ -163,11 +163,28 @@ This design keeps decoding logic out of your application and lets you focus on t
 
 ## Testing
 
-```bash
-go test ./...
-```
+The test suite runs on every push against Go 1.22 and the latest stable release, and the CI enforces 100% statement coverage.
 
-The comprehensive test suite builds synthetic class files covering constant pool cases, attributes, and bytecode instructions.
+- **Unit tests** build class files byte by byte to cover every opcode, every constant pool entry and every error path.
+- **Fixtures** are real classes compiled from `testdata/java/src` with `javac`, checked against `javap`. Compile them before running the tests (requires a JDK 17 or newer):
+
+  ```bash
+  testdata/java/build.sh
+  go test ./...
+  ```
+
+- **Fuzzing** checks that arbitrary input never panics and always returns a classified error. It runs for 30 seconds on every push; run it longer locally with:
+
+  ```bash
+  go test -run '^$' -fuzz=FuzzOpen -fuzztime=10m .
+  ```
+
+- **JDK corpus**: every release is tested against all the classes of the JDK 21 (more than 28,000 classes). To run it locally:
+
+  ```bash
+  jimage extract --dir /tmp/jdk "$JAVA_HOME/lib/modules"
+  CLASSFILEPARSER_CORPUS=/tmp/jdk go test -run TestCorpus -v .
+  ```
 
 ## Roadmap and known limitations
 
