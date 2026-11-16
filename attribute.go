@@ -252,6 +252,51 @@ type ModuleRequire struct {
 	VersionIndex uint16
 }
 
+type attributeDecoder func(reader *binaryReader, cp ConstantPool) Attribute
+
+var attributeDecoders map[Utf8]attributeDecoder
+
+func init() {
+	attributeDecoders = map[Utf8]attributeDecoder{
+		"Code": func(reader *binaryReader, cp ConstantPool) Attribute {
+			return parseCode(reader, cp)
+		},
+		"ConstantValue":                        empty(ConstantValue{}), // TODO
+		"Deprecated":                           empty(Deprecated{}),
+		"Exceptions":                           empty(Exceptions{}),                           // TODO
+		"InnerClasses":                         empty(InnerClasses{}),                         // TODO
+		"LineNumberTable":                      empty(LineNumberTable{}),                      // TODO
+		"LocalVariableTable":                   empty(LocalVariableTable{}),                   // TODO
+		"LocalVariableTypeTable":               empty(LocalVariableTypeTable{}),               // TODO
+		"MethodParameters":                     empty(MethodParameters{}),                     // TODO
+		"RuntimeVisibleAnnotations":            empty(RuntimeVisibleAnnotations{}),            // TODO
+		"RuntimeInvisibleAnnotations":          empty(RuntimeInvisibleAnnotations{}),          // TODO
+		"RuntimeVisibleParameterAnnotations":   empty(RuntimeVisibleParameterAnnotations{}),   // TODO
+		"RuntimeInvisibleParameterAnnotations": empty(RuntimeInvisibleParameterAnnotations{}), // TODO
+		"SourceFile":                           empty(SourceFile{}),                           // TODO
+		"SourceDebugExtension":                 empty(SourceDebugExtension{}),                 // TODO
+		"Signature": func(reader *binaryReader, cp ConstantPool) Attribute {
+			return Signature(readConstant[Utf8](reader, cp))
+		},
+		"StackMapTable":       empty(StackMapTable{}), // TODO
+		"Synthetic":           empty(Synthetic{}),
+		"EnclosingMethod":     empty(EnclosingMethod{}),     // TODO
+		"BootstrapMethods":    empty(BootstrapMethods{}),    // TODO
+		"Module":              empty(ModuleInfo{}),          // TODO
+		"ModulePackages":      empty(ModulePackages{}),      // TODO
+		"NestHost":            empty(NestHost{}),            // TODO
+		"NestMembers":         empty(NestMembers{}),         // TODO
+		"PermittedSubclasses": empty(PermittedSubclasses{}), // TODO
+		"Record":              empty(Record{}),              // TODO
+	}
+}
+
+func empty(attr Attribute) attributeDecoder {
+	return func(*binaryReader, ConstantPool) Attribute {
+		return attr
+	}
+}
+
 func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, error) {
 	var attr []Attribute
 	for _, a := range attributes {
@@ -260,60 +305,11 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 		if err != nil {
 			return nil, fmt.Errorf("failed to read attribute name: %w", err)
 		}
-		switch name {
-		case "Code":
-			attr = append(attr, parseCode(reader, cp))
-		case "ConstantValue": // TODO
-			attr = append(attr, ConstantValue{})
-		case "Deprecated":
-			attr = append(attr, Deprecated{})
-		case "Exceptions": // TODO
-			attr = append(attr, Exceptions{})
-		case "InnerClasses": // TODO
-			attr = append(attr, InnerClasses{})
-		case "LineNumberTable": // TODO
-			attr = append(attr, LineNumberTable{})
-		case "LocalVariableTable": // TODO
-			attr = append(attr, LocalVariableTable{})
-		case "LocalVariableTypeTable": // TODO
-			attr = append(attr, LocalVariableTypeTable{})
-		case "MethodParameters": // TODO
-			attr = append(attr, MethodParameters{})
-		case "RuntimeVisibleAnnotations": // TODO
-			attr = append(attr, RuntimeVisibleAnnotations{})
-		case "RuntimeInvisibleAnnotations": // TODO
-			attr = append(attr, RuntimeInvisibleAnnotations{})
-		case "RuntimeVisibleParameterAnnotations": // TODO
-			attr = append(attr, RuntimeVisibleParameterAnnotations{})
-		case "RuntimeInvisibleParameterAnnotations": // TODO
-			attr = append(attr, RuntimeInvisibleParameterAnnotations{})
-		case "SourceFile": // TODO
-			attr = append(attr, SourceFile{})
-		case "SourceDebugExtension": // TODO
-			attr = append(attr, SourceDebugExtension{})
-		case "Signature":
-			attr = append(attr, Signature(readConstant[Utf8](reader, cp)))
-		case "StackMapTable": // TODO
-			attr = append(attr, StackMapTable{})
-		case "Synthetic":
-			attr = append(attr, Synthetic{})
-		case "EnclosingMethod": // TODO
-			attr = append(attr, EnclosingMethod{})
-		case "BootstrapMethods": // TODO
-			attr = append(attr, BootstrapMethods{})
-		case "Module": // TODO
-			attr = append(attr, ModuleInfo{})
-		case "ModulePackages": // TODO
-			attr = append(attr, ModulePackages{})
-		case "NestHost": // TODO
-			attr = append(attr, NestHost{})
-		case "NestMembers": // TODO
-			attr = append(attr, NestMembers{})
-		case "PermittedSubclasses": // TODO
-			attr = append(attr, PermittedSubclasses{})
-		case "Record": // TODO
-			attr = append(attr, Record{})
+		decode, ok := attributeDecoders[name]
+		if !ok {
+			continue
 		}
+		attr = append(attr, decode(reader, cp))
 
 		if reader.err != nil {
 			return nil, fmt.Errorf("failed to read attribute %s: %w", name, reader.err)
