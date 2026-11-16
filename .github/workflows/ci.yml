@@ -34,7 +34,6 @@ jobs:
 
   coverage:
     name: Coverage
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -53,6 +52,7 @@ jobs:
           echo "percent=$(go tool cover -func=coverage.out | awk '/^total:/ {print $3}')" >> "$GITHUB_OUTPUT"
 
       - name: Publish coverage badge
+        if: github.event_name == 'push'
         env:
           PERCENT: ${{ steps.coverage.outputs.percent }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -70,3 +70,13 @@ jobs:
           git add coverage.json
           git commit -q -m "ci: :construction_worker: update coverage badge"
           git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges
+
+      - name: Enforce 100% coverage
+        env:
+          PERCENT: ${{ steps.coverage.outputs.percent }}
+        run: |
+          if [ "$PERCENT" != "100.0%" ]; then
+            echo "::error::Coverage is $PERCENT, expected 100.0%"
+            go tool cover -func=coverage.out | grep -v "100.0%"
+            exit 1
+          fi
