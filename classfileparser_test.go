@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -189,14 +188,14 @@ func TestOpenTruncated(t *testing.T) {
 
 	for cut, message := range cases {
 		_, err := Open(bytes.NewReader(data[:cut]))
-		if err == nil || err.Error() != message {
+		if !isTruncation(err) || err.Error() != message {
 			t.Errorf("cut at %d: got %v, want %s", cut, err, message)
 		}
 	}
 
 	for cut := range data {
 		_, err := Open(bytes.NewReader(data[:cut]))
-		if err == nil || errors.Is(err, ErrMalformed) || !strings.HasSuffix(err.Error(), "EOF") {
+		if !isTruncation(err) || errors.Is(err, ErrMalformed) {
 			t.Errorf("cut at %d: got %v, want a truncation error", cut, err)
 		}
 	}
@@ -207,7 +206,7 @@ func TestOpenHugeAttributeLength(t *testing.T) {
 	data := cat(minimal[:len(minimal)-2], u2(1), u2(1), u4(0xFFFFFFFF), []byte("xyz"))
 
 	_, err := Open(bytes.NewReader(data))
-	if want := "failed to read attribute 0: unexpected EOF"; err == nil || err.Error() != want {
+	if want := "failed to read attribute 0: unexpected EOF"; !isTruncation(err) || err.Error() != want {
 		t.Fatalf("got %v, want %s", err, want)
 	}
 }

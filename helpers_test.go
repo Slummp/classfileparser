@@ -3,6 +3,8 @@ package classfileparser
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"io"
 	"math"
 )
 
@@ -167,4 +169,8 @@ func codeInfo(bytecode []byte, exceptions []ExceptionTableEntry, nested ...testA
 		b = cat(b, u2(e.StartPc), u2(e.EndPc), u2(e.HandlerPc), u2(e.CatchType))
 	}
 	return cat(b, attributes(nested))
+}
+
+func isTruncation(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
 }

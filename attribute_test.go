@@ -143,7 +143,7 @@ func TestParseAttributesMalformed(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			_, err := parseAttributes([]AttributeInfo{c.attribute}, attributeConstantPool())
-			if err == nil || err.Error() != c.message || errors.Is(err, ErrMalformed) != c.malformed {
+			if err == nil || err.Error() != c.message || errors.Is(err, ErrMalformed) != c.malformed || isTruncation(err) == c.malformed {
 				t.Fatalf("got %v, want %s (malformed: %v)", err, c.message, c.malformed)
 			}
 		})
