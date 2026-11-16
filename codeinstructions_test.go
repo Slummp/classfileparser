@@ -2,7 +2,6 @@ package classfileparser
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"reflect"
@@ -283,23 +282,22 @@ func TestOpcodesTruncated(t *testing.T) {
 
 func TestOpcodesInvalidConstant(t *testing.T) {
 	for _, c := range opcodeCases() {
-		op := c.bytecode[0]
-		if op != 0x12 && op != 0x13 && op != 0x14 && !(op >= 0xB2 && op <= 0xBB) && op != 0xBD && op != 0xC0 && op != 0xC1 && op != 0xC5 {
-			continue
+		switch op := c.bytecode[0]; op {
+		case 0x12, 0x13, 0x14, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBD, 0xC0, 0xC1, 0xC5:
+			t.Run(fmt.Sprintf("0x%02X", op), func(t *testing.T) {
+				bytecode := append([]byte{}, c.bytecode...)
+				if op == 0x12 {
+					bytecode[1] = 0x09
+				} else {
+					bytecode[1], bytecode[2] = 0x00, 0x09
+				}
+				_, err := parseInstructions(bytecode)
+				want := "failed to read attribute Code: failed to read instruction at offset 0: malformed class file: invalid constant pool index: 9"
+				if !errors.Is(err, ErrMalformed) || err.Error() != want {
+					t.Fatalf("got %v, want %s", err, want)
+				}
+			})
 		}
-		t.Run(fmt.Sprintf("0x%02X", op), func(t *testing.T) {
-			bytecode := append([]byte{}, c.bytecode...)
-			if op == 0x12 {
-				bytecode[1] = 0x09
-			} else {
-				bytecode[1], bytecode[2] = 0x00, 0x09
-			}
-			_, err := parseInstructions(bytecode)
-			want := "failed to read attribute Code: failed to read instruction at offset 0: malformed class file: invalid constant pool index: 9"
-			if !errors.Is(err, ErrMalformed) || err.Error() != want {
-				t.Fatalf("got %v, want %s", err, want)
-			}
-		})
 	}
 }
 
@@ -345,7 +343,9 @@ func switchBytecode(nops int, opcode byte, operands ...int32) []byte {
 	for b.Len()%4 != 0 {
 		b.WriteByte(0x00) // padding
 	}
-	binary.Write(&b, binary.BigEndian, operands)
+	for _, operand := range operands {
+		b.Write(u4(uint32(operand)))
+	}
 	b.WriteByte(0xB1) // return
 	return b.Bytes()
 }

@@ -13,7 +13,7 @@ import (
 func FuzzOpen(f *testing.F) {
 	f.Add(minimalClass().bytes())
 	f.Add(fullClass().bytes())
-	filepath.WalkDir(fixturesRoot, func(path string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(fixturesRoot, func(path string, d fs.DirEntry, err error) error {
 		if err == nil && !d.IsDir() && strings.HasSuffix(path, ".class") {
 			if data, err := os.ReadFile(path); err == nil {
 				f.Add(data)

@@ -1,6 +1,7 @@
 package classfileparser
 
 import (
+	"bytes"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -15,13 +16,12 @@ func openFixture(t *testing.T, name string) (*ClassFile, *ClassStruct) {
 	t.Helper()
 
 	path := filepath.Join(fixturesRoot, name+".class")
-	fh, err := os.Open(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to open %s – compile the fixtures with testdata/java/build.sh: %v", path, err)
 	}
-	defer fh.Close()
 
-	cf, err := Open(fh)
+	cf, err := Open(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Open %s failed: %v", name, err)
 	}
