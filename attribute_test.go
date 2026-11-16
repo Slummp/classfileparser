@@ -91,60 +91,50 @@ func TestParseAttributesMalformed(t *testing.T) {
 	cases := map[string]struct {
 		attribute AttributeInfo
 		message   string
-		malformed bool
 	}{
 		"missing name": {
 			AttributeInfo{AttributeNameIndex: 9},
 			"failed to read attribute name: malformed class file: invalid constant pool index: 9",
-			true,
 		},
 		"name of wrong type": {
 			AttributeInfo{AttributeNameIndex: 4},
 			"failed to read attribute name: malformed class file: invalid constant pool type at index 4: classfileparser.Class",
-			true,
 		},
 		"empty Code": {
 			AttributeInfo{AttributeNameIndex: 1},
-			"failed to read attribute Code: EOF",
-			false,
+			"failed to read attribute Code: malformed class file: exceeds attribute length: 0",
 		},
 		"bytecode shorter than code length": {
 			AttributeInfo{AttributeNameIndex: 1, Info: cat(u2(1), u2(1), u4(5))},
-			"failed to read attribute Code: failed to read instruction at offset 0: EOF",
-			false,
+			"failed to read attribute Code: failed to read instruction at offset 0: malformed class file: exceeds attribute length: 8",
 		},
 		"truncated exception table": {
 			AttributeInfo{AttributeNameIndex: 1, Info: cat(u2(1), u2(1), u4(1), u1(0xB1), u2(1), u2(0))},
-			"failed to read attribute Code: EOF",
-			false,
+			"failed to read attribute Code: malformed class file: exceeds attribute length: 13",
 		},
 		"nested attribute longer than Code": {
 			AttributeInfo{AttributeNameIndex: 1, Info: cat(u2(1), u2(1), u4(1), u1(0xB1), u2(0), u2(1), u2(2), u4(100))},
 			"failed to read attribute Code: malformed class file: invalid attribute length: 100",
-			true,
 		},
 		"invalid nested attribute": {
 			AttributeInfo{AttributeNameIndex: 1, Info: codeInfo([]byte{0xB1}, nil, testAttribute{name: 9})},
 			"failed to read attribute Code: failed to read attribute name: malformed class file: invalid constant pool index: 9",
-			true,
 		},
 		"empty Signature": {
 			AttributeInfo{AttributeNameIndex: 2},
-			"failed to read attribute Signature: EOF",
-			false,
+			"failed to read attribute Signature: malformed class file: exceeds attribute length: 0",
 		},
 		"Signature of wrong type": {
 			AttributeInfo{AttributeNameIndex: 2, Info: u2(4)},
 			"failed to read attribute Signature: malformed class file: invalid constant pool type at index 4: classfileparser.Class",
-			true,
 		},
 	}
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			_, err := parseAttributes([]AttributeInfo{c.attribute}, attributeConstantPool())
-			if err == nil || err.Error() != c.message || errors.Is(err, ErrMalformed) != c.malformed || isTruncation(err) == c.malformed {
-				t.Fatalf("got %v, want %s (malformed: %v)", err, c.message, c.malformed)
+			if !errors.Is(err, ErrMalformed) || isTruncation(err) || err.Error() != c.message {
+				t.Fatalf("got %v, want %s", err, c.message)
 			}
 		})
 	}

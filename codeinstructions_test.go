@@ -425,8 +425,9 @@ func TestOpcodesEndOfData(t *testing.T) {
 		for cut := 1; cut < len(c.bytecode); cut++ {
 			info := cat(u2(1), u2(1), u4(uint32(len(c.bytecode))), c.bytecode[:cut])
 			_, err := parseAttributes([]AttributeInfo{{AttributeNameIndex: 1, Info: info}}, opcodeConstantPool())
-			if !isTruncation(err) || errors.Is(err, ErrMalformed) || !strings.HasPrefix(err.Error(), prefix) {
-				t.Errorf("0x%02X cut at %d: got %v, want a truncation error", c.bytecode[0], cut, err)
+			want := fmt.Sprintf("%smalformed class file: exceeds attribute length: %d", prefix, len(info))
+			if !errors.Is(err, ErrMalformed) || isTruncation(err) || err.Error() != want {
+				t.Errorf("0x%02X cut at %d: got %v, want %s", c.bytecode[0], cut, err, want)
 			}
 		}
 	}
@@ -442,12 +443,12 @@ func TestSwitchEndOfData(t *testing.T) {
 		cut      int
 		message  string
 	}{
-		"tableswitch in padding":    {tableswitch, 1, "EOF"},
-		"tableswitch in default":    {tableswitch, 6, "unexpected EOF"},
+		"tableswitch in padding":    {tableswitch, 1, "malformed class file: exceeds attribute length: 9"},
+		"tableswitch in default":    {tableswitch, 6, "malformed class file: exceeds attribute length: 14"},
 		"tableswitch before table":  {tableswitch, 16, "malformed class file: invalid tableswitch: 1 offsets exceed the remaining code"},
 		"tableswitch in table":      {tableswitch, 18, "malformed class file: invalid tableswitch: 1 offsets exceed the remaining code"},
-		"lookupswitch in padding":   {lookupswitch, 1, "EOF"},
-		"lookupswitch in default":   {lookupswitch, 6, "unexpected EOF"},
+		"lookupswitch in padding":   {lookupswitch, 1, "malformed class file: exceeds attribute length: 9"},
+		"lookupswitch in default":   {lookupswitch, 6, "malformed class file: exceeds attribute length: 14"},
 		"lookupswitch before pairs": {lookupswitch, 12, "malformed class file: invalid lookupswitch: bad number of pairs (1)"},
 		"lookupswitch in pairs":     {lookupswitch, 18, "malformed class file: invalid lookupswitch: bad number of pairs (1)"},
 	}
@@ -456,7 +457,7 @@ func TestSwitchEndOfData(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			info := cat(u2(1), u2(1), u4(uint32(len(c.bytecode))), c.bytecode[:c.cut])
 			_, err := parseAttributes([]AttributeInfo{{AttributeNameIndex: 1, Info: info}}, opcodeConstantPool())
-			if err == nil || err.Error() != prefix+c.message || errors.Is(err, ErrMalformed) == isTruncation(err) {
+			if !errors.Is(err, ErrMalformed) || isTruncation(err) || err.Error() != prefix+c.message {
 				t.Fatalf("got %v, want %s", err, prefix+c.message)
 			}
 		})

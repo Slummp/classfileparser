@@ -918,8 +918,11 @@ type binaryReader struct {
 }
 
 func (r *binaryReader) read(data interface{}) {
-	if r.err == nil {
-		r.err = binary.Read(r.Reader, binary.BigEndian, data)
+	if r.err != nil {
+		return
+	}
+	if err := binary.Read(r.Reader, binary.BigEndian, data); err != nil {
+		r.err = fmt.Errorf("%w: exceeds attribute length: %d", ErrMalformed, r.Size())
 	}
 }
 
