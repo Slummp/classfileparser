@@ -198,7 +198,7 @@ func getCpInfoLength(tag uint8, file io.Reader) (int, error) {
 		// Read the length of the Utf8 field (2 bytes)
 		var length uint16
 		if err := binary.Read(file, binary.BigEndian, &length); err != nil {
-			return 0, fmt.Errorf("failed to read CONSTANT_Utf8 length: %v", err)
+			return 0, fmt.Errorf("failed to read CONSTANT_Utf8 length: %w", err)
 		}
 		return int(length), nil
 
