@@ -54,53 +54,14 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 		interfaces = append(interfaces, string(name))
 	}
 
-	fields := []Field{}
-	for i, f := range cf.Fields {
-		name, err := getConstant[Utf8](cp, f.NameIndex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read field %d: %w", i, err)
-		}
-		descriptor, err := getConstant[Utf8](cp, f.DescriptorIndex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read field %s: %w", name, err)
-		}
-		attributes, err := parseAttributes(f.Attributes, cp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read field %s: %w", name, err)
-		}
-		fields = append(fields, Field{
-			Access:     findFlags(FieldT, f.AccessFlags),
-			Name:       string(name),
-			Type:       string(descriptor),
-			Attributes: attributes,
-		})
+	fields, err := resolveFields(cf.Fields, cp)
+	if err != nil {
+		return nil, err
 	}
 
-	methods := []Method{}
-	for i, m := range cf.Methods {
-		name, err := getConstant[Utf8](cp, m.NameIndex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read method %d: %w", i, err)
-		}
-		descriptor, err := getConstant[Utf8](cp, m.DescriptorIndex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
-		}
-		attributes, err := parseAttributes(m.Attributes, cp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
-		}
-		paramsTypes, returnType, err := readSignature(string(descriptor))
-		if err != nil {
-			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
-		}
-		methods = append(methods, Method{
-			Access:      findFlags(MethodT, m.AccessFlags),
-			Name:        string(name),
-			ReturnType:  returnType,
-			ParamsTypes: paramsTypes,
-			Attributes:  attributes,
-		})
+	methods, err := resolveMethods(cf.Methods, cp)
+	if err != nil {
+		return nil, err
 	}
 
 	attributes, err := parseAttributes(cf.Attributes, cp)
@@ -136,6 +97,61 @@ func (cf *ClassFile) GetClassFile() (*ClassStruct, error) {
 		Methods:    methods,
 		Attributes: attributes,
 	}, nil
+}
+
+func resolveFields(infos []FieldInfo, cp ConstantPool) ([]Field, error) {
+	fields := []Field{}
+	for i, f := range infos {
+		name, err := getConstant[Utf8](cp, f.NameIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read field %d: %w", i, err)
+		}
+		descriptor, err := getConstant[Utf8](cp, f.DescriptorIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read field %s: %w", name, err)
+		}
+		attributes, err := parseAttributes(f.Attributes, cp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read field %s: %w", name, err)
+		}
+		fields = append(fields, Field{
+			Access:     findFlags(FieldT, f.AccessFlags),
+			Name:       string(name),
+			Type:       string(descriptor),
+			Attributes: attributes,
+		})
+	}
+	return fields, nil
+}
+
+func resolveMethods(infos []MethodInfo, cp ConstantPool) ([]Method, error) {
+	methods := []Method{}
+	for i, m := range infos {
+		name, err := getConstant[Utf8](cp, m.NameIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %d: %w", i, err)
+		}
+		descriptor, err := getConstant[Utf8](cp, m.DescriptorIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
+		}
+		attributes, err := parseAttributes(m.Attributes, cp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
+		}
+		paramsTypes, returnType, err := readSignature(string(descriptor))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read method %s: %w", name, err)
+		}
+		methods = append(methods, Method{
+			Access:      findFlags(MethodT, m.AccessFlags),
+			Name:        string(name),
+			ReturnType:  returnType,
+			ParamsTypes: paramsTypes,
+			Attributes:  attributes,
+		})
+	}
+	return methods, nil
 }
 
 func readSignature(signature string) ([]string, string, error) {
