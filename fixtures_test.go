@@ -130,6 +130,10 @@ func TestFixtureMembers(t *testing.T) {
 	if !hasAttribute[SourceFile](cs.Attributes) {
 		t.Fatalf("missing SourceFile attribute")
 	}
+}
+
+func TestFixtureMembersFields(t *testing.T) {
+	cs := fixture(t, "testcases/Members")
 
 	fields := map[string]struct {
 		access []string
@@ -149,6 +153,10 @@ func TestFixtureMembers(t *testing.T) {
 	if !hasAttribute[ConstantValue](findField(t, cs, "ANSWER").Attributes) {
 		t.Errorf("missing ConstantValue attribute on ANSWER")
 	}
+}
+
+func TestFixtureMembersMethods(t *testing.T) {
+	cs := fixture(t, "testcases/Members")
 
 	methods := map[string]struct {
 		access     []string
