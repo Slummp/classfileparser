@@ -1,6 +1,10 @@
 # classfileparser
 
 [![CI](https://github.com/Slummp/classfileparser/actions/workflows/ci.yml/badge.svg)](https://github.com/Slummp/classfileparser/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Slummp/classfileparser.svg)](https://pkg.go.dev/github.com/Slummp/classfileparser)
+[![Go version](https://img.shields.io/github/go-mod/go-version/Slummp/classfileparser)](go.mod)
+[![Release](https://img.shields.io/github/v/tag/Slummp/classfileparser?label=release&sort=semver)](https://github.com/Slummp/classfileparser/tags)
+[![License](https://img.shields.io/github/license/Slummp/classfileparser)](LICENSE)
 
 `classfileparser` is a pure Go library for reading and decoding Java `.class` files. It exposes the raw structures defined by the JVM specification, adds typed helpers on top of the constant pool and attributes, and gives you a convenient high-level snapshot of a compiled class.
 
