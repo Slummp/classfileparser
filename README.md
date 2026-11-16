@@ -1,6 +1,7 @@
 # classfileparser
 
 [![CI](https://github.com/Slummp/classfileparser/actions/workflows/ci.yml/badge.svg)](https://github.com/Slummp/classfileparser/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Slummp/classfileparser/badges/coverage.json)](https://github.com/Slummp/classfileparser/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Slummp/classfileparser.svg)](https://pkg.go.dev/github.com/Slummp/classfileparser)
 [![Go version](https://img.shields.io/github/go-mod/go-version/Slummp/classfileparser)](go.mod)
 [![Release](https://img.shields.io/github/v/tag/Slummp/classfileparser?label=release&sort=semver)](https://github.com/Slummp/classfileparser/tags)

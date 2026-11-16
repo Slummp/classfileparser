@@ -31,3 +31,42 @@ jobs:
 
       - name: Test
         run: go test -race ./...
+
+  coverage:
+    name: Coverage
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27"
+
+      - name: Measure coverage
+        id: coverage
+        run: |
+          go test -coverprofile=coverage.out ./...
+          echo "percent=$(go tool cover -func=coverage.out | awk '/^total:/ {print $3}')" >> "$GITHUB_OUTPUT"
+
+      - name: Publish coverage badge
+        env:
+          PERCENT: ${{ steps.coverage.outputs.percent }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          value="${PERCENT%%.*}"
+          color=red
+          [ "$value" -ge 80 ] && color=yellow
+          [ "$value" -ge 95 ] && color=green
+          [ "$PERCENT" = "100.0%" ] && color=brightgreen
+          mkdir badges && cd badges
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s","color":"%s"}\n' "$PERCENT" "$color" > coverage.json
+          git init -q -b badges
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add coverage.json
+          git commit -q -m "ci: :construction_worker: update coverage badge"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges
