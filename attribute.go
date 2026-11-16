@@ -413,7 +413,7 @@ func (r *binaryReader) fail(err error) {
 func skipSwitchPadding(reader *binaryReader, codeStart int) {
 	pc := codeStart - reader.Len() // address right after the opcode
 	if padding := (4 - pc%4) % 4; padding > 0 {
-		reader.Seek(int64(padding), io.SeekCurrent)
+		_, _ = reader.Seek(int64(padding), io.SeekCurrent)
 	}
 }
 
