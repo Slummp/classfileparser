@@ -408,8 +408,13 @@ func TestFixtureWideLocals(t *testing.T) {
 		t.Errorf("missing wide istore 256")
 	}
 
-	want := []interface{}{Wide{OpCode: 0x84, LocalIndex: 260, Const: 1}, Wide{OpCode: 0x15, LocalIndex: 260}, Ireturn{}}
-	if got := code[len(code)-3:]; !reflect.DeepEqual(got, want) {
+	want := []interface{}{
+		Wide{OpCode: 0x84, LocalIndex: 259, Const: -2},
+		Wide{OpCode: 0x84, LocalIndex: 260, Const: 1},
+		Wide{OpCode: 0x15, LocalIndex: 260},
+		Ireturn{},
+	}
+	if got := code[len(code)-4:]; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %#v, want %#v", got, want)
 	}
 }

@@ -263,6 +263,7 @@ public class WideLocals {
         int local258 = 258;
         int local259 = 259;
         int local260 = 260;
+        local259 -= 2;
         local260++;
         return local260;
     }
