@@ -1,5 +1,7 @@
 package classfileparser
 
+import "slices"
+
 // Type categorizes the different sets of JVM access flags.
 type Type uint8
 
@@ -66,10 +68,16 @@ var flags map[Type]map[int]string = map[Type]map[int]string{
 }
 
 func findFlags(t Type, value uint16) []string {
+	var values []int
+	for flag := range flags[t] {
+		values = append(values, flag)
+	}
+	slices.Sort(values)
+
 	var ret []string
-	for flag, name := range flags[t] {
+	for _, flag := range values {
 		if value&uint16(flag) != 0 {
-			ret = append(ret, name)
+			ret = append(ret, flags[t][flag])
 		}
 	}
 	return ret
