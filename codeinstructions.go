@@ -693,7 +693,7 @@ type Monitorexit struct{}
 type Wide struct {
 	OpCode     uint8  // opcode in iload fload aload lload dload istore fstore astore lstore dstore ret iinc
 	LocalIndex uint16 // local variable index
-	Const      uint16 // const value ONLY in iinc case
+	Const      int16  // const value ONLY in iinc case
 }
 
 // Multianewarray - multianewarray (0xC5) : Create new multidimensional array
