@@ -262,63 +262,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 		}
 		switch name {
 		case "Code":
-			var code Code
-
-			reader.read(&code.MaxStack)
-			reader.read(&code.MaxLocals)
-
-			var codeLength uint32
-			reader.read(&codeLength)
-			start := reader.Len()
-			for start-reader.Len() < int(codeLength) {
-				pc := start - reader.Len()
-				code.Code = append(code.Code, decodeInstruction(reader, cp, start))
-
-				if start-reader.Len() > int(codeLength) {
-					reader.fail(fmt.Errorf("%w: exceeds code length: %d", ErrMalformed, codeLength))
-				}
-				if reader.err != nil {
-					reader.err = fmt.Errorf("failed to read instruction at offset %d: %w", pc, reader.err)
-					break
-				}
-			}
-
-			var exceptionTableLength uint16
-			reader.read(&exceptionTableLength)
-			code.ExceptionTable = make([]ExceptionTableEntry, exceptionTableLength)
-			for i := 0; i < int(exceptionTableLength); i++ {
-				exception := &ExceptionTableEntry{}
-				reader.read(&exception.StartPc)
-				reader.read(&exception.EndPc)
-				reader.read(&exception.HandlerPc)
-				reader.read(&exception.CatchType)
-				code.ExceptionTable[i] = *exception
-			}
-
-			var attributesCount uint16
-			reader.read(&attributesCount)
-			nestedAttributes := make([]AttributeInfo, attributesCount)
-			for i := 0; i < int(attributesCount); i++ {
-				attribute := &AttributeInfo{}
-				reader.read(&attribute.AttributeNameIndex)
-				reader.read(&attribute.AttributeLength)
-				if int64(attribute.AttributeLength) > int64(reader.Len()) {
-					reader.fail(fmt.Errorf("%w: invalid attribute length: %d", ErrMalformed, attribute.AttributeLength))
-					break
-				}
-				attribute.Info = make([]byte, attribute.AttributeLength)
-				reader.read(attribute.Info)
-				nestedAttributes[i] = *attribute
-			}
-			if reader.err == nil {
-				nested, err := parseAttributes(nestedAttributes, cp)
-				if err != nil {
-					reader.fail(err)
-				}
-				code.Attributes = nested
-			}
-
-			attr = append(attr, code)
+			attr = append(attr, parseCode(reader, cp))
 		case "ConstantValue": // TODO
 			attr = append(attr, ConstantValue{})
 		case "Deprecated":
@@ -377,6 +321,77 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 	}
 
 	return attr, nil
+}
+
+func parseCode(reader *binaryReader, cp ConstantPool) Code {
+	var code Code
+	reader.read(&code.MaxStack)
+	reader.read(&code.MaxLocals)
+	code.Code = readInstructions(reader, cp)
+	code.ExceptionTable = readExceptionTable(reader)
+	code.Attributes = readNestedAttributes(reader, cp)
+	return code
+}
+
+func readInstructions(reader *binaryReader, cp ConstantPool) []interface{} {
+	var instructions []interface{}
+	var codeLength uint32
+	reader.read(&codeLength)
+	start := reader.Len()
+	for start-reader.Len() < int(codeLength) {
+		pc := start - reader.Len()
+		instructions = append(instructions, decodeInstruction(reader, cp, start))
+
+		if start-reader.Len() > int(codeLength) {
+			reader.fail(fmt.Errorf("%w: exceeds code length: %d", ErrMalformed, codeLength))
+		}
+		if reader.err != nil {
+			reader.err = fmt.Errorf("failed to read instruction at offset %d: %w", pc, reader.err)
+			break
+		}
+	}
+	return instructions
+}
+
+func readExceptionTable(reader *binaryReader) []ExceptionTableEntry {
+	var exceptionTableLength uint16
+	reader.read(&exceptionTableLength)
+	exceptionTable := make([]ExceptionTableEntry, exceptionTableLength)
+	for i := 0; i < int(exceptionTableLength); i++ {
+		exception := &ExceptionTableEntry{}
+		reader.read(&exception.StartPc)
+		reader.read(&exception.EndPc)
+		reader.read(&exception.HandlerPc)
+		reader.read(&exception.CatchType)
+		exceptionTable[i] = *exception
+	}
+	return exceptionTable
+}
+
+func readNestedAttributes(reader *binaryReader, cp ConstantPool) []Attribute {
+	var attributesCount uint16
+	reader.read(&attributesCount)
+	nestedAttributes := make([]AttributeInfo, attributesCount)
+	for i := 0; i < int(attributesCount); i++ {
+		attribute := &AttributeInfo{}
+		reader.read(&attribute.AttributeNameIndex)
+		reader.read(&attribute.AttributeLength)
+		if int64(attribute.AttributeLength) > int64(reader.Len()) {
+			reader.fail(fmt.Errorf("%w: invalid attribute length: %d", ErrMalformed, attribute.AttributeLength))
+			break
+		}
+		attribute.Info = make([]byte, attribute.AttributeLength)
+		reader.read(attribute.Info)
+		nestedAttributes[i] = *attribute
+	}
+	if reader.err != nil {
+		return nil
+	}
+	nested, err := parseAttributes(nestedAttributes, cp)
+	if err != nil {
+		reader.fail(err)
+	}
+	return nested
 }
 
 type binaryReader struct {
