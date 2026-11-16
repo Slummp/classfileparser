@@ -14,7 +14,7 @@
 - Parse `.class` files directly from any `io.Reader` with `Open`
 - Navigate the raw `ClassFile` data structure or work with the friendly `ClassStruct` snapshot
 - Resolve constant pool entries into typed Go values (`Utf8`, `Class`, `Methodref`, and more)
-- Decode most standard JVM attributes, including `Code`, `LineNumberTable`, module metadata, and annotations
+- Recognize every standard JVM attribute, and fully decode `Code` (instructions, exception table) and `Signature`
 - Represent bytecode instructions with dedicated Go types so you can pattern-match opcodes safely
 
 ## Installation
@@ -85,7 +85,7 @@ func main() {
 - `Utf8` and primitive literals resolve to `string`, `int32`, `int64`, `float32`, or `float64`
 - `Class`, `Module`, and `Package` resolve to their internal names as `string`
 - Member references (`Fieldref`, `Methodref`, `InterfaceMethodref`) expand into structs with `Class`, `Name`, and `Type`
-- Invoke-dynamic and method handles become `InvokeDynamic`, `Dynamic`, and `MethodHandle` structs with decoded metadata
+- `MethodHandle` entries are fully resolved (kind, target member and whether it is an interface method); `Dynamic` and `InvokeDynamic` entries are recognized but not decoded yet
 
 The map is indexed by the original JVM slot number, so `cp[7]` corresponds to entry `#7` in the class file.
 
@@ -102,35 +102,14 @@ This snapshot is perfect for rendering class summaries, generating documentation
 
 ## Attribute decoding
 
-`parseAttributes` recognises a broad range of standard JVM attributes. The library currently decodes:
+`GetClassFile` returns the attributes of the class, of its fields, of its methods and of their `Code` attributes. Every standard attribute is recognized and returned as its own Go type, but only some of them are decoded yet:
 
-- `Code`
-- `ConstantValue`
-- `Deprecated`
-- `Exceptions`
-- `InnerClasses`
-- `LineNumberTable`
-- `LocalVariableTable`
-- `LocalVariableTypeTable`
-- `MethodParameters`
-- `RuntimeVisibleAnnotations`
-- `RuntimeInvisibleAnnotations`
-- `RuntimeVisibleParameterAnnotations`
-- `RuntimeInvisibleParameterAnnotations`
-- `SourceFile`
-- `SourceDebugExtension`
-- `Signature`
-- `StackMapTable`
-- `Synthetic`
-- `EnclosingMethod`
-- `BootstrapMethods`
-- `Module`
-- `ModulePackages`
-- `NestHost`
-- `NestMembers`
-- `PermittedSubclasses`.
+| Status | Attributes |
+|---|---|
+| Fully decoded | `Code` (instructions, exception table, nested attributes), `Signature`, `Deprecated`, `Synthetic` |
+| Recognized, content not decoded yet | `ConstantValue`, `Exceptions`, `InnerClasses`, `EnclosingMethod`, `LineNumberTable`, `LocalVariableTable`, `LocalVariableTypeTable`, `MethodParameters`, `RuntimeVisibleAnnotations`, `RuntimeInvisibleAnnotations`, `RuntimeVisibleParameterAnnotations`, `RuntimeInvisibleParameterAnnotations`, `SourceFile`, `SourceDebugExtension`, `StackMapTable`, `BootstrapMethods`, `Module`, `ModulePackages`, `NestHost`, `NestMembers`, `PermittedSubclasses`, `Record` |
 
-New attribute types can be added by extending the switch in `parseAttributes`.
+Recognized attributes are returned as empty structs for now. Unknown attributes are ignored.
 
 ## Bytecode representation
 
@@ -156,10 +135,27 @@ for _, attr := range snapshot.Methods[0].Attributes {
 
 This design keeps decoding logic out of your application and lets you focus on the semantics you care about.
 
-## Error handling and panics
+## Error handling
 
-- `Open` and `GetConstantPool` return descriptive errors for malformed files or unsupported tags.
-- Attribute parsing uses helper readers that panic when faced with unexpected lengths or unsupported structures (e.g. stack-map frames above type 63, or unimplemented switch instructions). Wrap calls with `recover` if you need to sandbox untrusted input.
+`Open`, `GetConstantPool` and `GetClassFile` never panic: every problem is returned as an error, wrapped with its context, for example:
+
+```text
+failed to read method run: failed to read attribute Code: failed to read instruction at offset 2: malformed class file: unknown opcode: 0xCB
+```
+
+Errors fall into two categories that you can check with `errors.Is`:
+
+- **Truncated input**: the reader ends before the class file does. The error wraps `io.EOF` or `io.ErrUnexpectedEOF`.
+- **Malformed content**: an invalid magic number, an unknown constant pool tag or opcode, an invalid constant pool reference, data overflowing its attribute… The error wraps `classfileparser.ErrMalformed`.
+
+```go
+cf, err := classfileparser.Open(r)
+if errors.Is(err, classfileparser.ErrMalformed) {
+    // not a valid class file
+}
+```
+
+Lengths read from the file are checked against the available data before allocating, so a small malicious file cannot make the parser allocate gigabytes of memory.
 
 ## Testing
 
@@ -188,12 +184,8 @@ The test suite runs on every push against Go 1.22 and the latest stable release,
 
 ## Roadmap and known limitations
 
-- `tableswitch` and `lookupswitch` opcodes (`0xAA`, `0xAB`) are not yet decoded.
-- Method invocation and dynamic call opcodes `invokeinterface` (`0xB9`) and `invokedynamic` (`0xBA`) are placeholders.
-- Array allocation and wide index opcodes `newarray` (`0xBC`) and `wide` (`0xC4`) are not fully implemented yet.
-- Some advanced StackMapTable frame types and BootstrapMethod details are placeholders.
-- Module attribute parsing skips several sub-sections after counting entries; fill in the TODOs if you need full fidelity.
-- Attribute parsing panics on unsupported tags instead of returning errors – consider hardening if you expect hostile input.
+- Decode the content of the attributes that are only recognized for now (see [Attribute decoding](#attribute-decoding)).
+- Decode `CONSTANT_Dynamic` and `CONSTANT_InvokeDynamic` entries, which are returned empty for now.
 
 ## License
 
