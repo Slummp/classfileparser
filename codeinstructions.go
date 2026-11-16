@@ -649,13 +649,13 @@ type Invokestatic struct {
 	IsInterface bool // true if the target is an interface method (InterfaceMethodref)
 }
 
-// Invokeinterface - invokeinterface (0xB9) : Invoke interface method // TODO
+// Invokeinterface - invokeinterface (0xB9) : Invoke interface method
 type Invokeinterface struct {
 	InterfaceMethodref
 	Count uint8
 }
 
-// Invokedynamic - invokedynamic (0xBA) : Invoke a dynamically-computed call site // TODO
+// Invokedynamic - invokedynamic (0xBA) : Invoke a dynamically-computed call site
 type Invokedynamic struct {
 	InvokeDynamic
 }
@@ -663,7 +663,7 @@ type Invokedynamic struct {
 // New - new (0xBB) : Create new object
 type New string
 
-// Newarray - newarray (0xBC) : Create new array // TODO
+// Newarray - newarray (0xBC) : Create new array
 type Newarray struct {
 	Type uint8 // type -> T_BOOLEAN=4 ; T_CHAR=5 ; T_FLOAT=6 ; T_DOUBLE=7 ; T_BYTE=8 ; T_SHORT=9 ; T_INT=10 ; T_LONG=11
 }
@@ -689,7 +689,7 @@ type Monitorenter struct{}
 // Monitorexit - monitorexit (0xC3) : Exit monitor for object
 type Monitorexit struct{}
 
-// Wide - wide (0xC4) : Extend local variable index by additional bytes // TODO
+// Wide - wide (0xC4) : Extend local variable index by additional bytes
 type Wide struct {
 	OpCode     uint8  // opcode in iload fload aload lload dload istore fstore astore lstore dstore ret iinc
 	LocalIndex uint16 // local variable index

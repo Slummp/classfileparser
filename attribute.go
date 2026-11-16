@@ -856,7 +856,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 			attr = append(attr, code)
 		case "ConstantValue": // TODO
 			attr = append(attr, ConstantValue{})
-		case "Deprecated": // TODO
+		case "Deprecated":
 			attr = append(attr, Deprecated{})
 		case "Exceptions": // TODO
 			attr = append(attr, Exceptions{})
@@ -886,7 +886,7 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 			attr = append(attr, Signature(readConstant[Utf8](reader, cp)))
 		case "StackMapTable": // TODO
 			attr = append(attr, StackMapTable{})
-		case "Synthetic": // TODO
+		case "Synthetic":
 			attr = append(attr, Synthetic{})
 		case "EnclosingMethod": // TODO
 			attr = append(attr, EnclosingMethod{})
