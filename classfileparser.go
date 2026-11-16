@@ -131,10 +131,7 @@ func (cf *ClassFile) readConstantPool(file io.Reader) error {
 	// Read constant pool entries
 	cf.ConstantPool = make([]CpInfo, cf.ConstantPoolCount-1)
 	i := 0
-	for {
-		if i >= len(cf.ConstantPool) {
-			break
-		}
+	for i < len(cf.ConstantPool) {
 		var tag uint8
 		if err := binary.Read(file, binary.BigEndian, &tag); err != nil {
 			return fmt.Errorf("failed to read constant pool tag: %w", err)

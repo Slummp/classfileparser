@@ -16,7 +16,7 @@ const (
 	NestedT
 )
 
-var flags map[Type]map[int]string = map[Type]map[int]string{
+var flags = map[Type]map[int]string{
 	ClassT: {
 		0x0001: "ACC_PUBLIC",
 		0x0010: "ACC_FINAL",
