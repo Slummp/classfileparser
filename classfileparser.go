@@ -1,3 +1,12 @@
+// Package classfileparser reads and decodes Java .class files.
+//
+// Open parses a class file from any io.Reader into a ClassFile that mirrors the
+// JVM specification. GetConstantPool resolves its constant pool into typed Go
+// values, and GetClassFile returns a ClassStruct snapshot with resolved names,
+// access flags, descriptors, attributes and decoded bytecode instructions.
+//
+// Errors caused by an invalid class file wrap ErrMalformed, and errors caused by
+// truncated input wrap io.EOF or io.ErrUnexpectedEOF.
 package classfileparser
 
 import (
