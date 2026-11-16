@@ -320,11 +320,11 @@ func parseAttributes(attributes []AttributeInfo, cp ConstantPool) ([]Attribute, 
 					if err != nil {
 						reader.fail(err)
 					}
-					code.Code = append(code.Code, Ldc(value))
+					code.Code = append(code.Code, Ldc{Value: value})
 				case 0x13:
-					code.Code = append(code.Code, LdcW(readConstant[interface{}](reader, cp)))
+					code.Code = append(code.Code, LdcW{Value: readConstant[interface{}](reader, cp)})
 				case 0x14:
-					code.Code = append(code.Code, Ldc2W(readConstant[interface{}](reader, cp)))
+					code.Code = append(code.Code, Ldc2W{Value: readConstant[interface{}](reader, cp)})
 				case 0x15:
 					var instr Iload
 					reader.read(&instr.LocalIndex)

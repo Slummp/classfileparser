@@ -59,13 +59,19 @@ type Sipush struct {
 }
 
 // Ldc - ldc (0x12) : Push item from run-time constant pool
-type Ldc interface{} // index in constant pool (not long/double)
+type Ldc struct {
+	Value interface{} // constant pool value (not long/double)
+}
 
 // LdcW - ldc_w (0x13) : Push item from run-time constant pool (wide index)
-type LdcW interface{} // index in constant pool (not long/double)
+type LdcW struct {
+	Value interface{} // constant pool value (not long/double)
+}
 
 // Ldc2W - ldc2_w (0x14) : Push long or double from run-time constant pool (wide index)
-type Ldc2W interface{} // index in constant pool (not int/float/string)
+type Ldc2W struct {
+	Value interface{} // constant pool value (long or double)
+}
 
 // Iload - iload (0x15) : Load int from local variable
 type Iload struct {
